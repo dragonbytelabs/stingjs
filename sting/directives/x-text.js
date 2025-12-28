@@ -1,3 +1,5 @@
+import { directive } from "../core/directives.js"
+
 /**
  * Bind the `x-text` directive.
  *
@@ -11,7 +13,7 @@
  * - Re-runs automatically when any accessed signal changes.
  * - Updates textContent with the resolved value (or empty string if null/undefined).
  *
- * @param {DirectiveContext} ctx
+ * @param {import("../sting/sting.js").DirectiveContext} ctx
  */
 export function bindXText(ctx) {
   const { el, scope, getAttr, resolvePath, effect, disposers } = ctx
@@ -26,3 +28,5 @@ export function bindXText(ctx) {
 
   disposers.push(dispose)
 }
+
+directive(bindXText)

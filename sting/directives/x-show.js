@@ -1,3 +1,5 @@
+import { directive } from "../core/directives.js"
+
 /**
  * Bind the `x-show` directive.
  *
@@ -11,7 +13,7 @@
  * - Falsy value → element is hidden (`display: none`)
  * - Preserves the element’s original inline `display` style
  *
- * @param {DirectiveContext} ctx
+ * @param {import("../sting/sting.js").DirectiveContext} ctx
  */
 export function bindXShow(ctx) {
   const { el, scope, getAttr, resolvePath, effect, disposers } = ctx
@@ -28,3 +30,5 @@ export function bindXShow(ctx) {
 
   disposers.push(dispose)
 }
+
+directive(bindXShow)

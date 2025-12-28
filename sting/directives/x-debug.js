@@ -1,3 +1,5 @@
+import { directive } from "../core/directives.js"
+
 /**
  * Bind the `x-debug` directive.
  *
@@ -14,7 +16,7 @@
  * - Subscribes to the signal so the debug output stays live
  * - Uses `untrack()` when reading values to avoid feedback loops
  *
- * @param {DirectiveContext} ctx
+ * @param {import("../sting/sting.js").DirectiveContext} ctx
  */
 export function bindXDebug(ctx) {
   const { el, scope, getAttr, resolvePath, effect, untrack, disposers } = ctx
@@ -48,3 +50,5 @@ export function bindXDebug(ctx) {
 
   disposers.push(dispose)
 }
+
+directive(bindXDebug)

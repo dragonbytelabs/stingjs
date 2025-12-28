@@ -1,0 +1,19 @@
+{
+  "name": "stingjs",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/sting.global.js",
+  "module": "./dist/sting.mjs",
+  "exports": {
+    ".": {
+      "import": "./dist/sting.mjs",
+      "default": "./dist/sting.global.js"
+    }
+  },
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.2"
+  }
+}

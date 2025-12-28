@@ -1,3 +1,5 @@
+import { directive } from "../core/directives.js"
+
 /**
  * Bind `x-on:*` event directives.
  *
@@ -13,7 +15,7 @@
  * - Attaches a DOM event listener
  * - Automatically removes the listener when the component is destroyed
  *
- * @param {DirectiveContext} ctx
+ * @param {import("../sting/sting.js").DirectiveContext} ctx
  */
 export function bindXOn(ctx) {
   const { el, scope, resolvePath, disposers } = ctx
@@ -34,3 +36,5 @@ export function bindXOn(ctx) {
     disposers.push(() => el.removeEventListener(eventName, handler))
   }
 }
+
+directive(bindXOn)
