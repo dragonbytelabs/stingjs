@@ -26,11 +26,17 @@ var sting = (() => {
   // sting/core/index.js
   var core_exports = {};
   __export(core_exports, {
+    __DEV__: () => __DEV__,
+    assert: () => assert,
     batch: () => batch,
     binders: () => binders,
     data: () => data,
+    devAssert: () => devAssert,
+    devWarn: () => devWarn,
     directive: () => directive,
     effect: () => effect,
+    elementTag: () => elementTag,
+    isPathSafe: () => isPathSafe,
     produce: () => produce,
     signal: () => signal,
     start: () => start,
@@ -38,6 +44,35 @@ var sting = (() => {
     untrack: () => untrack,
     use: () => use
   });
+
+  // sting/core/utils.js
+  var __DEV__ = typeof __DEV__ !== "undefined" ? __DEV__ : true;
+  function assert(condition, message, options) {
+    if (condition) return;
+    const err = (
+      /** @type {StingError} */
+      new Error(message)
+    );
+    if (options?.code) err.code = options.code;
+    if (options?.cause) err.cause = options.cause;
+    throw err;
+  }
+  function devAssert(condition, message) {
+    if (!__DEV__) return;
+    assert(condition, message);
+  }
+  function devWarn(message, extra) {
+    if (!__DEV__) return;
+    if (extra !== void 0) console.warn(message, extra);
+    else console.warn(message);
+  }
+  function elementTag(element) {
+    return element?.tagName?.toLowerCase?.() ?? "";
+  }
+  function isPathSafe(path) {
+    if (typeof path !== "string") return false;
+    return /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(path);
+  }
 
   // sting/core/reactivity.js
   var Listener = null;
@@ -68,6 +103,7 @@ var sting = (() => {
       return value;
     }
     function write(next) {
+      devAssert(observers instanceof Set, "[sting] signal observers must be a Set");
       const nextValue = typeof next === "function" ? next(value) : next;
       if (Object.is(nextValue, value)) return value;
       value = nextValue;
@@ -230,8 +266,9 @@ var sting = (() => {
     cur[last] = value;
   }
   function mountComponent(rootEl) {
+    devAssert(rootEl instanceof Element, "[sting] mountComponent expects an Element");
     const name = getAttr(rootEl, "x-data");
-    if (!name) return;
+    devAssert(!!name, `[sting] mountComponent called without x-data`);
     const factory = getFactory(name);
     if (!factory) {
       console.warn(`[sting] unknown component "${name}"`, rootEl);
@@ -265,6 +302,7 @@ var sting = (() => {
     };
   }
   function start(root = document) {
+    devAssert(root === document || root instanceof Element, "[sting] start(root) expects Document or Element");
     const roots = root.querySelectorAll("[x-data]");
     const destroys = /* @__PURE__ */ new Map();
     for (const el of roots) {
@@ -304,14 +342,20 @@ var sting = (() => {
       started = true;
       start();
     }
+    let domReadyHooked = false;
     function autoStart() {
+      if (started) return;
       if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", ensureStarted, { once: true });
+        if (domReadyHooked) return;
+        domReadyHooked = true;
+        document.addEventListener("DOMContentLoaded", () => ensureStarted(), { once: true });
       } else {
         ensureStarted();
       }
     }
     function data2(name, factory) {
+      devAssert(typeof name === "string" && name.length > 0, `[sting] data(name) requires a string name`);
+      devAssert(typeof factory === "function", `[sting] data("${name}") requires a factory function`);
       data(name, factory);
       ensureStarted();
     }
@@ -328,6 +372,7 @@ var sting = (() => {
     const { el, scope, getAttr: getAttr2, getPath: getPath2, effect: effect2, disposers } = ctx;
     const expr = getAttr2(el, "x-text");
     if (!expr) return;
+    devAssert(isPathSafe(expr), `[sting] x-text invalid path "${expr}"`);
     const dispose = effect2(() => {
       const value = getPath2(scope, expr);
       el.textContent = value ?? "";
@@ -341,6 +386,7 @@ var sting = (() => {
     const { el, scope, getAttr: getAttr2, getPath: getPath2, effect: effect2, disposers } = ctx;
     const expr = getAttr2(el, "x-show");
     if (!expr) return;
+    devAssert(isPathSafe(expr), `[sting] x-show invalid path "${expr}"`);
     const initialDisplay = el.style.display;
     const dispose = effect2(() => {
       const value = getPath2(scope, expr);
@@ -353,26 +399,50 @@ var sting = (() => {
   // sting/directives/x-on.js
   function bindXOn(ctx) {
     const { el, scope, getPath: getPath2, disposers } = ctx;
+    const bound = getOrInitBoundMap(el);
     for (const attr of el.attributes) {
       if (!attr.name.startsWith("x-on:")) continue;
-      const eventName = attr.name.slice(5);
-      const handlerFn = getPath2(scope, attr.value);
+      const eventName = attr.name.slice(5).trim();
+      const expr = (attr.value ?? "").trim();
+      if (!eventName) {
+        devWarn(`[sting] invalid ${attr.name} (missing event name)`, el);
+        continue;
+      }
+      if (!expr) {
+        devWarn(`[sting] ${attr.name} is missing a handler name`, el);
+        continue;
+      }
+      devAssert(isPathSafe(expr), `[sting] ${attr.name} invalid handler path "${expr}"`);
+      const key = `${eventName}::${expr}`;
+      if (bound.has(key)) continue;
+      const handlerFn = getPath2(scope, expr);
       if (typeof handlerFn !== "function") {
-        console.warn(`[sting] ${attr.name}="${attr.value}" is not a function`, el);
+        devWarn(`[sting] ${attr.name}="${expr}" is not a function`, el);
         continue;
       }
       const handler = (e) => handlerFn(e);
       el.addEventListener(eventName, handler);
       disposers.push(() => el.removeEventListener(eventName, handler));
+      bound.set(key, handler);
     }
   }
   directive(bindXOn);
+  var _boundListeners = /* @__PURE__ */ new WeakMap();
+  function getOrInitBoundMap(el) {
+    let m = _boundListeners.get(el);
+    if (!m) {
+      m = /* @__PURE__ */ new Map();
+      _boundListeners.set(el, m);
+    }
+    return m;
+  }
 
   // sting/directives/x-debug.js
   function bindXDebug(ctx) {
     const { el, scope, getAttr: getAttr2, getPath: getPath2, effect: effect2, untrack: untrack2, disposers } = ctx;
     const expr = getAttr2(el, "x-debug");
     if (!expr) return;
+    devAssert(isPathSafe(expr), `[sting] x-debug invalid path "${expr}"`);
     let sig = getPath2(scope, expr);
     if (typeof sig !== "function") {
       sig = getPath2(scope, `$${expr}`);
@@ -396,14 +466,16 @@ var sting = (() => {
     const { el, scope, getAttr: getAttr2, getPath: getPath2, setPath: setPath2, effect: effect2, disposers } = ctx;
     const expr = getAttr2(el, "x-model");
     if (!expr) return;
-    const tag = el.tagName?.toLowerCase?.();
+    devAssert(isPathSafe(expr), `[sting] x-model invalid path "${expr}"`);
+    const tag = elementTag(el);
     const isInput = tag === "input";
     const isTextarea = tag === "textarea";
     const isSelect = tag === "select";
     if (!isInput && !isTextarea && !isSelect) {
-      console.warn(`[sting] x-model can only be used on input/textarea/select`, el);
+      devWarn(`[sting] x-model can only be used on input/textarea/select`, el);
       return;
     }
+    devAssert(typeof expr === "string" && expr.length > 0, "[sting] x-model expr must be a non-empty string");
     const field = (
       /** @type {any} */
       el

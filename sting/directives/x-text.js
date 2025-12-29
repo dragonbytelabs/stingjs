@@ -1,4 +1,5 @@
 import { directive } from "../core/directives.js"
+import { devAssert, isPathSafe } from "../core/utils.js"
 
 /**
  * Bind the `x-text` directive.
@@ -20,6 +21,8 @@ export function bindXText(ctx) {
 
   const expr = getAttr(el, "x-text")
   if (!expr) return
+
+  devAssert(isPathSafe(expr), `[sting] x-text invalid path "${expr}"`)
 
   const dispose = effect(() => {
     const value = getPath(scope, expr)

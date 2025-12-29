@@ -1,4 +1,5 @@
 import { directive } from "../core/directives.js"
+import { devAssert, isPathSafe } from "../core/utils.js"
 
 /**
  * Bind the `x-debug` directive.
@@ -23,6 +24,8 @@ export function bindXDebug(ctx) {
 
   const expr = getAttr(el, "x-debug")
   if (!expr) return
+
+  devAssert(isPathSafe(expr), `[sting] x-debug invalid path "${expr}"`)
 
   let sig = getPath(scope, expr)
 

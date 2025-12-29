@@ -1,6 +1,8 @@
 import { effect, untrack } from "./reactivity.js"
 import { getFactory } from "./registry.js"
 import { binders } from "./directives.js"
+import { assert, devAssert } from "./utils.js"
+
 
 /**
  * Context passed to directive binders.
@@ -101,8 +103,10 @@ function setPath(scope, path, value) {
  * @returns {(() => void) | undefined}
  */
 function mountComponent(rootEl) {
+    devAssert(rootEl instanceof Element, "[sting] mountComponent expects an Element")
+
     const name = getAttr(rootEl, "x-data")
-    if (!name) return
+    devAssert(!!name, `[sting] mountComponent called without x-data`)
 
     const factory = getFactory(name)
     if (!factory) {
@@ -154,6 +158,8 @@ function mountComponent(rootEl) {
  * @returns {() => void}
  */
 export function start(root = document) {
+    devAssert(root === document || root instanceof Element, "[sting] start(root) expects Document or Element")
+
     const roots = root.querySelectorAll("[x-data]")
     const destroys = new Map()
 

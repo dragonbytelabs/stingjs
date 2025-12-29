@@ -1,33 +1,39 @@
 import * as core from "../core/index.js"
 
 export function makeSting() {
-  let started = false
+    let started = false
 
-  function ensureStarted() {
-    if (started) return
-    started = true
-    core.start() // mounts existing [x-data] + sets up mutation observer
-  }
-
-  function autoStart() {
-    // Safety net: start when DOM is ready
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", ensureStarted, { once: true })
-    } else {
-      ensureStarted()
+    function ensureStarted() {
+        if (started) return
+        started = true
+        core.start() // mounts existing [x-data] + sets up mutation observer
     }
-  }
 
-  // Wrap data() so first registration triggers start
-  function data(name, factory) {
-    core.data(name, factory) // Register first
-    ensureStarted() // Then start
-  }
+    let domReadyHooked = false
 
-  return {
-    ...core,
-    data,
-    autoStart,
-    start: ensureStarted
-  }
+    function autoStart() {
+        if (started) return
+        if (document.readyState === "loading") {
+            if (domReadyHooked) return
+            domReadyHooked = true
+            document.addEventListener("DOMContentLoaded", () => ensureStarted(), { once: true })
+        } else {
+            ensureStarted()
+        }
+    }
+
+    function data(name, factory) {
+        core.devAssert(typeof name === "string" && name.length > 0, `[sting] data(name) requires a string name`)
+        core.devAssert(typeof factory === "function", `[sting] data("${name}") requires a factory function`)
+        core.data(name, factory)
+        ensureStarted()
+    }
+
+
+    return {
+        ...core,
+        data,
+        autoStart,
+        start: ensureStarted
+    }
 }

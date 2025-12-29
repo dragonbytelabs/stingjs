@@ -1,3 +1,5 @@
+import { devAssert } from "./utils.js"
+
 /**
  * A reactive computation runner that can be subscribed to signals.
  * It also tracks which signal observer-sets it is currently subscribed to.
@@ -88,6 +90,8 @@ export function signal(initial) {
      * @returns {any} The updated value.
      */
     function write(next) {
+        devAssert(observers instanceof Set, "[sting] signal observers must be a Set")
+
         const nextValue = typeof next === "function" ? next(value) : next
         if (Object.is(nextValue, value)) return value
 
