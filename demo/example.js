@@ -1,3 +1,5 @@
+const string = window.sting
+
 sting.data("profile", () => {
   const [user, setUser] = sting.store({ name: "Sam" })
   const [open, setOpen] = sting.signal(true)

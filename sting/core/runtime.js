@@ -110,7 +110,11 @@ function mountComponent(rootEl) {
 
     const factory = getFactory(name)
     if (!factory) {
-        console.warn(`[sting] unknown component "${name}"`, rootEl)
+        devWarn(
+            `[sting] component "${name}" not registered yet. ` +
+            `Did you call sting.data("${name}", ...) before DOM ready?`,
+            rootEl
+        )
         return
     }
 

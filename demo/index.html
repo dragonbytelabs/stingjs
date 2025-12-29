@@ -4,14 +4,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="../dist/sting.global.js"></script>
+  <script src="../dist/sting.global.js" defer></script>
+  <script src="./example.js" type="module" defer></script>
 </head>
 
 <body>
-  <script src="./example.js" type="module"></script>
   <div x-data="profile">
     <button x-on:click="toggle">Toggle</button>
-
     <input x-model="user.name" />
 
     <!-- visible debug output -->
@@ -22,5 +21,6 @@
     <span x-show="open" x-text="user.name"></span>
     <button x-on:click="destroyMe">Remove Component</button>
   </div>
+</body>
 
 </html>

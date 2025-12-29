@@ -13,7 +13,7 @@ __export(core_exports, {
   binders: () => binders,
   data: () => data,
   devAssert: () => devAssert,
-  devWarn: () => devWarn,
+  devWarn: () => devWarn2,
   directive: () => directive,
   effect: () => effect,
   elementTag: () => elementTag,
@@ -42,7 +42,7 @@ function devAssert(condition, message) {
   if (!__DEV__) return;
   assert(condition, message);
 }
-function devWarn(message, extra) {
+function devWarn2(message, extra) {
   if (!__DEV__) return;
   if (extra !== void 0) console.warn(message, extra);
   else console.warn(message);
@@ -252,7 +252,10 @@ function mountComponent(rootEl) {
   devAssert(!!name, `[sting] mountComponent called without x-data`);
   const factory = getFactory(name);
   if (!factory) {
-    console.warn(`[sting] unknown component "${name}"`, rootEl);
+    devWarn(
+      `[sting] component "${name}" not registered yet. Did you call sting.data("${name}", ...) before DOM ready?`,
+      rootEl
+    );
     return;
   }
   const scope = factory();
@@ -386,11 +389,11 @@ function bindXOn(ctx) {
     const eventName = attr.name.slice(5).trim();
     const expr = (attr.value ?? "").trim();
     if (!eventName) {
-      devWarn(`[sting] invalid ${attr.name} (missing event name)`, el);
+      devWarn2(`[sting] invalid ${attr.name} (missing event name)`, el);
       continue;
     }
     if (!expr) {
-      devWarn(`[sting] ${attr.name} is missing a handler name`, el);
+      devWarn2(`[sting] ${attr.name} is missing a handler name`, el);
       continue;
     }
     devAssert(isPathSafe(expr), `[sting] ${attr.name} invalid handler path "${expr}"`);
@@ -398,7 +401,7 @@ function bindXOn(ctx) {
     if (bound.has(key)) continue;
     const handlerFn = getPath2(scope, expr);
     if (typeof handlerFn !== "function") {
-      devWarn(`[sting] ${attr.name}="${expr}" is not a function`, el);
+      devWarn2(`[sting] ${attr.name}="${expr}" is not a function`, el);
       continue;
     }
     const handler = (e) => handlerFn(e);
@@ -453,7 +456,7 @@ function bindXModel(ctx) {
   const isTextarea = tag === "textarea";
   const isSelect = tag === "select";
   if (!isInput && !isTextarea && !isSelect) {
-    devWarn(`[sting] x-model can only be used on input/textarea/select`, el);
+    devWarn2(`[sting] x-model can only be used on input/textarea/select`, el);
     return;
   }
   devAssert(typeof expr === "string" && expr.length > 0, "[sting] x-model expr must be a non-empty string");

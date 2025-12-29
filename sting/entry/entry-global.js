@@ -7,6 +7,5 @@ import "../directives/x-debug.js"
 import "../directives/x-model.js"
 
 const stingInstance = makeSting()
-stingInstance.autoStart()
 
 export default stingInstance
