@@ -1,4 +1,5 @@
 import { directive } from "../core/directives.js"
+import { devAssert, isPathSafe, unwrap } from "../core/utils.js"
 
 /**
  * Bind the `x-show` directive.
@@ -21,10 +22,12 @@ export function bindXShow(ctx) {
   const expr = getAttr(el, "x-show")
   if (!expr) return
 
+  devAssert(isPathSafe(expr), `[sting] x-show invalid path "${expr}"`)
+
   const initialDisplay = el.style.display
 
   const dispose = effect(() => {
-    const value = getPath(scope, expr)
+    const value = unwrap(getPath(scope, expr))
     el.style.display = value ? initialDisplay : "none"
   })
 

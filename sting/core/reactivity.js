@@ -1,3 +1,5 @@
+import { devAssert } from "./utils.js"
+
 /**
  * A reactive computation runner that can be subscribed to signals.
  * It also tracks which signal observer-sets it is currently subscribed to.
@@ -88,6 +90,8 @@ export function signal(initial) {
      * @returns {any} The updated value.
      */
     function write(next) {
+        devAssert(observers instanceof Set, "[sting] signal observers must be a Set")
+
         const nextValue = typeof next === "function" ? next(value) : next
         if (Object.is(nextValue, value)) return value
 
@@ -154,6 +158,29 @@ export function effect(fn) {
         }
         runner.deps.clear()
     }
+}
+
+/**
+ * Create a computed signal (a read-only signal derived from other signals).
+ *
+ * @param {() => any} fn
+ * @returns {() => any} getter function
+ * 
+ * @example
+ * const [count, setCount] = signal(0)
+ * const double = computed(() => count() * 2)
+ * effect(() => console.log(double()))
+ * setCount(1) // triggers effect, logs 2
+ */
+export function computed(fn) {
+  const [get, set] = signal(undefined)
+
+  const dispose = effect(() => {
+    set(fn())
+  })
+
+  get.dispose = dispose
+  return get
 }
 
 /**

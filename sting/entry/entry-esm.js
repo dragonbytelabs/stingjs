@@ -13,4 +13,19 @@ const sting = makeSting()
 sting.autoStart()
 
 export default sting
-export * from "../core/index.js" // optional: named exports if you want
+
+export const {
+  data,
+  start,
+  autoStart,
+  signal,
+  effect,
+  batch,
+  untrack,
+  computed,
+  store,
+  produce,
+  directive,
+  use,
+  binders,
+} = sting
