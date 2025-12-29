@@ -82,15 +82,13 @@ function setPath(scope, path, value) {
         cur = cur?.[key]
 
         if (cur == null) {
-            console.warn(`setPath: "${path}" is not reachable`)
+            console.warn(`setPath: "${path}" not reachable (missing "${key}")`)
             return
         }
     }
 
     const last = parts[parts.length - 1];
-    if (curr == null) return;
     cur[last] = value
-
 }
 
 /**
