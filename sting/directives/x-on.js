@@ -15,16 +15,16 @@ import { directive } from "../core/directives.js"
  * - Attaches a DOM event listener
  * - Automatically removes the listener when the component is destroyed
  *
- * @param {import("../sting/sting.js").DirectiveContext} ctx
+ * @param {import("../core/runtime.js").DirectiveContext} ctx
  */
 export function bindXOn(ctx) {
-  const { el, scope, resolvePath, disposers } = ctx
+  const { el, scope, getPath, disposers } = ctx
 
   for (const attr of el.attributes) {
     if (!attr.name.startsWith("x-on:")) continue
 
     const eventName = attr.name.slice(5)
-    const handlerFn = resolvePath(scope, attr.value)
+    const handlerFn = getPath(scope, attr.value)
 
     if (typeof handlerFn !== "function") {
       console.warn(`[sting] ${attr.name}="${attr.value}" is not a function`, el)

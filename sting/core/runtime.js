@@ -12,8 +12,10 @@ import { binders } from "./directives.js"
  *   Component scope returned by the x-data factory.
  * @property {(el: Element, name: string) => string | null} getAttr
  *   Reads an attribute from an element.
- * @property {(scope: any, path: string) => any} resolvePath
- *   Resolves a CSP-safe dot-path (e.g. "user.name") against scope.
+ * @property {(scope: any, path: string) => any} getPath
+ *   Gets a dot-path (e.g. "user.name") against scope.
+ * @property {(scope: any, path: string, value: any) => void} setPath
+ *   Sets a dot-path (e.g. "user.name") against scope.
  * @property {(fn: () => void) => () => void} effect
  *   Creates a reactive effect; returns a disposer.
  * @property {<T>(fn: () => T) => T} untrack
@@ -52,17 +54,41 @@ function walk(root, fn) {
 
 /**
  * Resolve a dot-path like "user.name" against a scope object.
- * CSP-friendly: only identifiers + dot access (no calls/operators).
- *
+ * 
  * @param {any} scope
  * @param {string} path
  * @returns {any}
  */
-function resolvePath(scope, path) {
+function getPath(scope, path) {
     const parts = path.split(".").map((s) => s.trim()).filter(Boolean)
     let cur = scope
     for (const p of parts) cur = cur?.[p]
     return cur
+}
+
+/**
+ * Set a dot-path like "user.name" against a scope object.
+ * 
+ * @param {any} scope
+ * @param {string} path
+ * @param {any} value
+ */
+function setPath(scope, path, value) {
+    const parts = path.split(".").map((s) => s.trim()).filter(Boolean)
+    if (parts.length === 0) return
+    let cur = scope;
+    for (let i = 0; i < parts.length - 1; i++) {
+        const key = parts[i];
+        cur = cur?.[key]
+
+        if (cur == null) {
+            console.warn(`setPath: "${path}" not reachable (missing "${key}")`)
+            return
+        }
+    }
+
+    const last = parts[parts.length - 1];
+    cur[last] = value
 }
 
 /**
@@ -95,7 +121,8 @@ function mountComponent(rootEl) {
             el,
             scope,
             getAttr,
-            resolvePath,
+            getPath,
+            setPath,
             effect,
             untrack,
             disposers,

@@ -19,16 +19,16 @@ import { directive } from "../core/directives.js"
  * @param {import("../sting/sting.js").DirectiveContext} ctx
  */
 export function bindXDebug(ctx) {
-  const { el, scope, getAttr, resolvePath, effect, untrack, disposers } = ctx
+  const { el, scope, getAttr, getPath, effect, untrack, disposers } = ctx
 
   const expr = getAttr(el, "x-debug")
   if (!expr) return
 
-  let sig = resolvePath(scope, expr)
+  let sig = getPath(scope, expr)
 
   // If the value facade was passed (e.g. "open"), try "$open"
   if (typeof sig !== "function") {
-    sig = resolvePath(scope, `$${expr}`)
+    sig = getPath(scope, `$${expr}`)
   }
 
   const dispose = effect(() => {
