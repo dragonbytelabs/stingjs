@@ -27,8 +27,7 @@ export function bindXShow(ctx) {
   const initialDisplay = el.style.display
 
   const dispose = effect(() => {
-    const resolved = getPath(scope, expr)
-    const value = unwrap(resolved) 
+    const value = unwrap(getPath(scope, expr))
     el.style.display = value ? initialDisplay : "none"
   })
 
