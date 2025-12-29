@@ -68,3 +68,14 @@ export function isPathSafe(path) {
   if (typeof path !== "string") return false
   return /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(path)
 }
+
+/**
+ * Unwrap a signal or return the value as-is.
+ *
+ * @template T
+ * @param {T | (() => T)} signal
+ * @returns {T}
+ */
+export function unwrap(signal) {
+  return typeof signal === "function" ? signal() : signal
+}

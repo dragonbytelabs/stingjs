@@ -1,5 +1,5 @@
 import { directive } from "../core/directives.js"
-import { devAssert, isPathSafe } from "../core/utils.js"
+import { devAssert, isPathSafe, unwrap } from "../core/utils.js"
 
 /**
  * Bind the `x-text` directive.
@@ -26,7 +26,7 @@ export function bindXText(ctx) {
 
   const dispose = effect(() => {
     const resolved = getPath(scope, expr)
-    const value = typeof resolved === "function" ? resolved() : resolved 
+    const value = unwrap(resolved) 
     el.textContent = value ?? ""
   })
 

@@ -24,6 +24,7 @@ __export(core_exports, {
   start: () => start,
   store: () => store,
   untrack: () => untrack,
+  unwrap: () => unwrap,
   use: () => use
 });
 
@@ -54,6 +55,9 @@ function elementTag(element) {
 function isPathSafe(path) {
   if (typeof path !== "string") return false;
   return /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(path);
+}
+function unwrap(signal3) {
+  return typeof signal3 === "function" ? signal3() : signal3;
 }
 
 // sting/core/reactivity.js
@@ -374,7 +378,7 @@ function bindXText(ctx) {
   devAssert(isPathSafe(expr), `[sting] x-text invalid path "${expr}"`);
   const dispose = effect3(() => {
     const resolved = getPath2(scope, expr);
-    const value = typeof resolved === "function" ? resolved() : resolved;
+    const value = unwrap(resolved);
     el.textContent = value ?? "";
   });
   disposers.push(dispose);
@@ -390,7 +394,7 @@ function bindXShow(ctx) {
   const initialDisplay = el.style.display;
   const dispose = effect3(() => {
     const resolved = getPath2(scope, expr);
-    const value = typeof resolved === "function" ? resolved() : resolved;
+    const value = unwrap(resolved);
     el.style.display = value ? initialDisplay : "none";
   });
   disposers.push(dispose);

@@ -43,6 +43,7 @@ var sting = (() => {
     start: () => start,
     store: () => store,
     untrack: () => untrack,
+    unwrap: () => unwrap,
     use: () => use
   });
 
@@ -73,6 +74,9 @@ var sting = (() => {
   function isPathSafe(path) {
     if (typeof path !== "string") return false;
     return /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(path);
+  }
+  function unwrap(signal2) {
+    return typeof signal2 === "function" ? signal2() : signal2;
   }
 
   // sting/core/reactivity.js
@@ -393,7 +397,7 @@ var sting = (() => {
     devAssert(isPathSafe(expr), `[sting] x-text invalid path "${expr}"`);
     const dispose = effect2(() => {
       const resolved = getPath2(scope, expr);
-      const value = typeof resolved === "function" ? resolved() : resolved;
+      const value = unwrap(resolved);
       el.textContent = value ?? "";
     });
     disposers.push(dispose);
@@ -409,7 +413,7 @@ var sting = (() => {
     const initialDisplay = el.style.display;
     const dispose = effect2(() => {
       const resolved = getPath2(scope, expr);
-      const value = typeof resolved === "function" ? resolved() : resolved;
+      const value = unwrap(resolved);
       el.style.display = value ? initialDisplay : "none";
     });
     disposers.push(dispose);
