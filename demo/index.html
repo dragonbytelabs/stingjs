@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -23,7 +24,8 @@
 
       <div class="pillrow" aria-label="Build info">
         <span class="pill">global build: <span class="kbd">sting.global.js</span></span>
-        <span class="pill">directives: <span class="kbd">text</span> <span class="kbd">show</span> <span class="kbd">on</span> <span class="kbd">debug</span> <span class="kbd">model</span></span>
+        <span class="pill">directives: <span class="kbd">text</span> <span class="kbd">show</span> <span
+            class="kbd">on</span> <span class="kbd">debug</span> <span class="kbd">model</span></span>
       </div>
     </header>
 
@@ -37,7 +39,9 @@
         <div class="content">
           <!-- PROFILE -->
           <section class="card" aria-labelledby="profile-title">
-            <header><h2 id="profile-title">Profile (x-text, x-show, x-on, x-model, x-debug)</h2></header>
+            <header>
+              <h2 id="profile-title">Profile (x-text, x-show, x-on, x-model, x-debug)</h2>
+            </header>
             <div class="content" x-data="profile">
               <div class="row">
                 <button class="btn" x-on:click="toggle">Toggle visibility</button>
@@ -52,13 +56,13 @@
 
               <div class="row">
                 <div class="debug" x-debug="$open"></div>
-                <div class="debug" x-debug="user.name"></div>
               </div>
 
               <div class="sep"></div>
 
               <p class="hint">
-                The span below is guarded by <span class="kbd">x-show="open"</span> and populated by <span class="kbd">x-text="user.name"</span>.
+                The span below is guarded by <span class="kbd">x-show="open"</span> and populated by <span
+                  class="kbd">x-text="user.name"</span>.
               </p>
 
               <p>
@@ -72,7 +76,9 @@
 
           <!-- COUNTER -->
           <section class="card" aria-labelledby="counter-title">
-            <header><h2 id="counter-title">Counter (events + derived output)</h2></header>
+            <header>
+              <h2 id="counter-title">Counter (events + derived output)</h2>
+            </header>
             <div class="content" x-data="counter">
               <div class="row">
                 <button class="btn good" x-on:click="inc">+1</button>
@@ -93,7 +99,9 @@
 
           <!-- FORM LAB -->
           <section class="card" aria-labelledby="formlab-title">
-            <header><h2 id="formlab-title">Form Lab (checkbox + select via x-model)</h2></header>
+            <header>
+              <h2 id="formlab-title">Form Lab (checkbox + select via x-model)</h2>
+            </header>
             <div class="content" x-data="formLab">
               <label>
                 Choose your fellowship role (select)
@@ -145,14 +153,16 @@
 
           <div class="sep"></div>
 
-         
+
         </div>
       </aside>
     </main>
 
     <footer>
-      Forged in the depths of DragonByte Labs &mdash; <a href="https://github.com/dragonbytelabs/stingjs" target="_blank" rel="noopener">View source on GitHub</a> 
+      Forged in the depths of DragonByte Labs &mdash; <a href="https://github.com/dragonbytelabs/stingjs"
+        target="_blank" rel="noopener">View source on GitHub</a>
     </footer>
   </div>
 </body>
+
 </html>

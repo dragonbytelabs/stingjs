@@ -25,7 +25,8 @@ export function bindXText(ctx) {
   devAssert(isPathSafe(expr), `[sting] x-text invalid path "${expr}"`)
 
   const dispose = effect(() => {
-    const value = getPath(scope, expr)
+    const resolved = getPath(scope, expr)
+    const value = typeof resolved === "function" ? resolved() : resolved 
     el.textContent = value ?? ""
   })
 

@@ -161,6 +161,29 @@ export function effect(fn) {
 }
 
 /**
+ * Create a computed signal (a read-only signal derived from other signals).
+ *
+ * @param {() => any} fn
+ * @returns {() => any} getter function
+ * 
+ * @example
+ * const [count, setCount] = signal(0)
+ * const double = computed(() => count() * 2)
+ * effect(() => console.log(double()))
+ * setCount(1) // triggers effect, logs 2
+ */
+export function computed(fn) {
+  const [get, set] = signal(undefined)
+
+  const dispose = effect(() => {
+    set(fn())
+  })
+
+  get.dispose = dispose
+  return get
+}
+
+/**
  * Run a function without collecting reactive dependencies.
  *
  * @template T

@@ -22,6 +22,7 @@ export const {
   effect,
   batch,
   untrack,
+  computed,
   store,
   produce,
   directive,

@@ -30,6 +30,7 @@ var sting = (() => {
     assert: () => assert,
     batch: () => batch,
     binders: () => binders,
+    computed: () => computed,
     data: () => data,
     devAssert: () => devAssert,
     devWarn: () => devWarn,
@@ -147,6 +148,14 @@ var sting = (() => {
       }
       runner.deps.clear();
     };
+  }
+  function computed(fn) {
+    const [get, set] = signal(void 0);
+    const dispose = effect(() => {
+      set(fn());
+    });
+    get.dispose = dispose;
+    return get;
   }
   function untrack(fn) {
     const prev = Listener;
@@ -383,7 +392,8 @@ var sting = (() => {
     if (!expr) return;
     devAssert(isPathSafe(expr), `[sting] x-text invalid path "${expr}"`);
     const dispose = effect2(() => {
-      const value = getPath2(scope, expr);
+      const resolved = getPath2(scope, expr);
+      const value = typeof resolved === "function" ? resolved() : resolved;
       el.textContent = value ?? "";
     });
     disposers.push(dispose);
@@ -398,7 +408,8 @@ var sting = (() => {
     devAssert(isPathSafe(expr), `[sting] x-show invalid path "${expr}"`);
     const initialDisplay = el.style.display;
     const dispose = effect2(() => {
-      const value = getPath2(scope, expr);
+      const resolved = getPath2(scope, expr);
+      const value = typeof resolved === "function" ? resolved() : resolved;
       el.style.display = value ? initialDisplay : "none";
     });
     disposers.push(dispose);

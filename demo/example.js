@@ -31,14 +31,14 @@ sting.data("profile", () => {
   }
 
   // derived-ish UI string (kept simple; you can later add memo/computed helpers)
-  const glowLevel = () => {
+  const glowLevel = sting.computed(() => {
     const n = glow()
     return n === 0 ? "none" : n === 1 ? "faint" : n === 2 ? "bright" : "blinding"
-  }
+  })
 
   return {
     user,
-    get open() { return open() },
+    open,
     $open: open,
     glowLevel,
     toggle,

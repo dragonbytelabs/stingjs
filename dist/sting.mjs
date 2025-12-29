@@ -11,6 +11,7 @@ __export(core_exports, {
   assert: () => assert,
   batch: () => batch,
   binders: () => binders,
+  computed: () => computed,
   data: () => data,
   devAssert: () => devAssert,
   devWarn: () => devWarn,
@@ -128,6 +129,14 @@ function effect(fn) {
     }
     runner.deps.clear();
   };
+}
+function computed(fn) {
+  const [get, set] = signal(void 0);
+  const dispose = effect(() => {
+    set(fn());
+  });
+  get.dispose = dispose;
+  return get;
 }
 function untrack(fn) {
   const prev = Listener;
@@ -364,7 +373,8 @@ function bindXText(ctx) {
   if (!expr) return;
   devAssert(isPathSafe(expr), `[sting] x-text invalid path "${expr}"`);
   const dispose = effect3(() => {
-    const value = getPath2(scope, expr);
+    const resolved = getPath2(scope, expr);
+    const value = typeof resolved === "function" ? resolved() : resolved;
     el.textContent = value ?? "";
   });
   disposers.push(dispose);
@@ -379,7 +389,8 @@ function bindXShow(ctx) {
   devAssert(isPathSafe(expr), `[sting] x-show invalid path "${expr}"`);
   const initialDisplay = el.style.display;
   const dispose = effect3(() => {
-    const value = getPath2(scope, expr);
+    const resolved = getPath2(scope, expr);
+    const value = typeof resolved === "function" ? resolved() : resolved;
     el.style.display = value ? initialDisplay : "none";
   });
   disposers.push(dispose);
@@ -539,6 +550,7 @@ var {
   effect: effect2,
   batch: batch2,
   untrack: untrack2,
+  computed: computed2,
   store: store2,
   produce: produce2,
   directive: directive2,
@@ -549,6 +561,7 @@ export {
   autoStart,
   batch2 as batch,
   binders2 as binders,
+  computed2 as computed,
   data2 as data,
   entry_esm_default as default,
   directive2 as directive,

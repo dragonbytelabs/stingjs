@@ -27,7 +27,8 @@ export function bindXShow(ctx) {
   const initialDisplay = el.style.display
 
   const dispose = effect(() => {
-    const value = getPath(scope, expr)
+    const resolved = getPath(scope, expr)
+    const value = typeof resolved === "function" ? resolved() : resolved
     el.style.display = value ? initialDisplay : "none"
   })
 
