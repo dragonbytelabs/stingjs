@@ -600,7 +600,7 @@ var sting = (() => {
       return;
     }
     if (attr === "class") {
-      el.className = value ?? "";
+      applyClassBinding(el, value);
       return;
     }
     if (attr === "style") {
@@ -621,6 +621,52 @@ var sting = (() => {
     } else {
       el.setAttribute(attr, String(value));
     }
+  }
+  var CLASS_STATE = /* @__PURE__ */ new WeakMap();
+  function initClassState(el) {
+    let st = CLASS_STATE.get(el);
+    if (st) return st;
+    st = {
+      base: new Set((el.getAttribute("class") || "").split(/\s+/).filter(Boolean)),
+      applied: /* @__PURE__ */ new Set()
+    };
+    CLASS_STATE.set(el, st);
+    return st;
+  }
+  function normalizeClassValue(value) {
+    const out = /* @__PURE__ */ new Set();
+    if (!value) return out;
+    if (typeof value === "string") {
+      value.split(/\s+/).filter(Boolean).forEach((c) => out.add(c));
+      return out;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (typeof item === "string") item.split(/\s+/).filter(Boolean).forEach((c) => out.add(c));
+      }
+      return out;
+    }
+    if (typeof value === "object") {
+      for (const [cls, on] of Object.entries(value)) {
+        if (on) cls.split(/\s+/).filter(Boolean).forEach((c) => out.add(c));
+      }
+      return out;
+    }
+    return out;
+  }
+  function applyClassBinding(el, value) {
+    const st = initClassState(el);
+    const next = normalizeClassValue(value);
+    for (const c of st.applied) {
+      el.classList.remove(c);
+    }
+    for (const c of st.base) {
+      el.classList.add(c);
+    }
+    for (const c of next) {
+      el.classList.add(c);
+    }
+    st.applied = next;
   }
 
   // sting/entry/entry-global.js
