@@ -13,7 +13,7 @@ __export(core_exports, {
   binders: () => binders,
   data: () => data,
   devAssert: () => devAssert,
-  devWarn: () => devWarn2,
+  devWarn: () => devWarn,
   directive: () => directive,
   effect: () => effect,
   elementTag: () => elementTag,
@@ -42,7 +42,7 @@ function devAssert(condition, message) {
   if (!__DEV__) return;
   assert(condition, message);
 }
-function devWarn2(message, extra) {
+function devWarn(message, extra) {
   if (!__DEV__) return;
   if (extra !== void 0) console.warn(message, extra);
   else console.warn(message);
@@ -321,18 +321,24 @@ function start(root = document) {
 // sting/entry/shared.js
 function makeSting() {
   let started = false;
+  let startQueued = false;
   function ensureStarted() {
-    if (started) return;
-    started = true;
-    start();
+    if (started || startQueued) return;
+    startQueued = true;
+    queueMicrotask(() => {
+      startQueued = false;
+      if (started) return;
+      started = true;
+      start();
+    });
   }
   let domReadyHooked = false;
   function autoStart2() {
-    if (started) return;
+    if (started || startQueued) return;
     if (document.readyState === "loading") {
       if (domReadyHooked) return;
       domReadyHooked = true;
-      document.addEventListener("DOMContentLoaded", () => ensureStarted(), { once: true });
+      document.addEventListener("DOMContentLoaded", ensureStarted, { once: true });
     } else {
       ensureStarted();
     }
@@ -389,11 +395,11 @@ function bindXOn(ctx) {
     const eventName = attr.name.slice(5).trim();
     const expr = (attr.value ?? "").trim();
     if (!eventName) {
-      devWarn2(`[sting] invalid ${attr.name} (missing event name)`, el);
+      devWarn(`[sting] invalid ${attr.name} (missing event name)`, el);
       continue;
     }
     if (!expr) {
-      devWarn2(`[sting] ${attr.name} is missing a handler name`, el);
+      devWarn(`[sting] ${attr.name} is missing a handler name`, el);
       continue;
     }
     devAssert(isPathSafe(expr), `[sting] ${attr.name} invalid handler path "${expr}"`);
@@ -401,7 +407,7 @@ function bindXOn(ctx) {
     if (bound.has(key)) continue;
     const handlerFn = getPath2(scope, expr);
     if (typeof handlerFn !== "function") {
-      devWarn2(`[sting] ${attr.name}="${expr}" is not a function`, el);
+      devWarn(`[sting] ${attr.name}="${expr}" is not a function`, el);
       continue;
     }
     const handler = (e) => handlerFn(e);
@@ -456,7 +462,7 @@ function bindXModel(ctx) {
   const isTextarea = tag === "textarea";
   const isSelect = tag === "select";
   if (!isInput && !isTextarea && !isSelect) {
-    devWarn2(`[sting] x-model can only be used on input/textarea/select`, el);
+    devWarn(`[sting] x-model can only be used on input/textarea/select`, el);
     return;
   }
   devAssert(typeof expr === "string" && expr.length > 0, "[sting] x-model expr must be a non-empty string");

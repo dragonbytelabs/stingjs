@@ -1,26 +1,158 @@
 <!doctype html>
-<html>
-
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark light" />
+  <title>StingJS Demo — Glows When Complexity Is Near</title>
   <script src="../dist/sting.global.js" defer></script>
   <script src="./example.js" type="module" defer></script>
+  <link rel="stylesheet" href="./main.css" />
 </head>
 
 <body>
-  <div x-data="profile">
-    <button x-on:click="toggle">Toggle</button>
-    <input x-model="user.name" />
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div style="min-width:0">
+          <h1>StingJS Demo Arena</h1>
+          <p class="subtitle">A tiny reactive library that glows when complexity is near.</p>
+        </div>
+      </div>
 
-    <!-- visible debug output -->
-    <div x-debug="$open"></div>
-    <button x-on:click="rename">Rename</button>
+      <div class="pillrow" aria-label="Build info">
+        <span class="pill">global build: <span class="kbd">sting.global.js</span></span>
+        <span class="pill">directives: <span class="kbd">text</span> <span class="kbd">show</span> <span class="kbd">on</span> <span class="kbd">debug</span> <span class="kbd">model</span></span>
+      </div>
+    </header>
 
-    <!-- visual show/hide -->
-    <span x-show="open" x-text="user.name"></span>
-    <button x-on:click="destroyMe">Remove Component</button>
+    <main>
+      <!-- LEFT: Components -->
+      <section class="card" aria-labelledby="left-title">
+        <header>
+          <h2 id="left-title">🧙‍♂️ Components</h2>
+        </header>
+
+        <div class="content">
+          <!-- PROFILE -->
+          <section class="card" aria-labelledby="profile-title">
+            <header><h2 id="profile-title">Profile (x-text, x-show, x-on, x-model, x-debug)</h2></header>
+            <div class="content" x-data="profile">
+              <div class="row">
+                <button class="btn" x-on:click="toggle">Toggle visibility</button>
+                <button class="btn warn" x-on:click="rename">Rename → Frodo</button>
+                <button class="btn bad" x-on:click="destroyMe">Remove component</button>
+              </div>
+
+              <label>
+                Name (two-way bound)
+                <input class="input" x-model="user.name" placeholder="Type a hobbit name..." />
+              </label>
+
+              <div class="row">
+                <div class="debug" x-debug="$open"></div>
+                <div class="debug" x-debug="user.name"></div>
+              </div>
+
+              <div class="sep"></div>
+
+              <p class="hint">
+                The span below is guarded by <span class="kbd">x-show="open"</span> and populated by <span class="kbd">x-text="user.name"</span>.
+              </p>
+
+              <p>
+                <span x-show="open">
+                  👋 Hello, <strong><span x-text="user.name"></span></strong>. Your UI currently glows at:
+                  <span class="kbd"><span x-text="glowLevel"></span></span>
+                </span>
+              </p>
+            </div>
+          </section>
+
+          <!-- COUNTER -->
+          <section class="card" aria-labelledby="counter-title">
+            <header><h2 id="counter-title">Counter (events + derived output)</h2></header>
+            <div class="content" x-data="counter">
+              <div class="row">
+                <button class="btn good" x-on:click="inc">+1</button>
+                <button class="btn" x-on:click="dec">-1</button>
+                <button class="btn warn" x-on:click="reset">Reset</button>
+              </div>
+
+              <p class="hint">
+                If this breaks, a framework just got its wings.
+              </p>
+
+              <div class="row">
+                <div class="debug" x-debug="$count"></div>
+                <div class="debug">mood: <span class="kbd"><span x-text="mood"></span></span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- FORM LAB -->
+          <section class="card" aria-labelledby="formlab-title">
+            <header><h2 id="formlab-title">Form Lab (checkbox + select via x-model)</h2></header>
+            <div class="content" x-data="formLab">
+              <label>
+                Choose your fellowship role (select)
+                <select x-model="role">
+                  <option value="burglar">Burglar</option>
+                  <option value="wizard">Wizard</option>
+                  <option value="ranger">Ranger</option>
+                  <option value="dwarf">Dwarf (complains, but helps)</option>
+                </select>
+              </label>
+
+              <div class="row">
+                <label style="display:flex; gap:10px; align-items:center">
+                  <input type="checkbox" x-model="stealthMode" />
+                  <span>Stealth mode (checkbox)</span>
+                </label>
+              </div>
+
+              <div class="row">
+                <div class="debug" x-debug="$role"></div>
+                <div class="debug" x-debug="$stealthMode"></div>
+              </div>
+
+              <p>
+                Current build: <span class="kbd"><span x-text="summary"></span></span>
+              </p>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- RIGHT: Harness / Notes -->
+      <aside class="card" aria-labelledby="right-title">
+        <header>
+          <h2 id="right-title">🧪 Test Harness Notes</h2>
+        </header>
+
+        <div class="content">
+          <section>
+            <h3 style="margin:0; font-size:13px; font-family:var(--mono);">What this page tests</h3>
+            <ul style="margin:10px 0 0 18px; color:var(--muted);">
+              <li><span class="kbd">x-text</span> reading nested paths</li>
+              <li><span class="kbd">x-show</span> toggling display</li>
+              <li><span class="kbd">x-on</span> binding click handlers</li>
+              <li><span class="kbd">x-model</span> input/select/checkbox 2-way binding</li>
+              <li><span class="kbd">MutationObserver</span> cleanup when a component root is removed</li>
+            </ul>
+          </section>
+
+          <div class="sep"></div>
+
+         
+        </div>
+      </aside>
+    </main>
+
+    <footer>
+      Forged in the depths of DragonByte Labs &mdash; <a href="https://github.com/dragonbytelabs/stingjs" target="_blank" rel="noopener">View source on GitHub</a> 
+    </footer>
   </div>
 </body>
-
 </html>

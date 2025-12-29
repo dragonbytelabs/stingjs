@@ -9,5 +9,3 @@ A tiny reactive library that glows when complexity is near.
 SolidJS-style reactivity.  
 AlpineJS-style ergonomics.  
 hobbit-sized footprint.  
-
-> Even the smallest framework can change the course of the web.

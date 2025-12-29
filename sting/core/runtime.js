@@ -1,7 +1,7 @@
 import { effect, untrack } from "./reactivity.js"
 import { getFactory } from "./registry.js"
 import { binders } from "./directives.js"
-import { assert, devAssert } from "./utils.js"
+import { devAssert, devWarn } from "./utils.js"
 
 
 /**
