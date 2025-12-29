@@ -12,6 +12,8 @@
   <div x-data="profile">
     <button x-on:click="toggle">Toggle</button>
 
+    <input x-model="user.name" />
+
     <!-- visible debug output -->
     <div x-debug="$open"></div>
     <button x-on:click="rename">Rename</button>
