@@ -131,6 +131,42 @@
               </p>
             </div>
           </section>
+          <!-- CLASS LAB -->
+          <section class="card" aria-labelledby="classlab-title">
+            <header>
+              <h2 id="classlab-title">Class Lab (x-bind:class object syntax)</h2>
+            </header>
+
+            <div class="content" x-data="classLab">
+              <p class="hint">
+                This tests <span class="kbd">x-bind:class</span> with <span class="kbd">{ className: boolean }</span>
+                syntax.
+                Base classes stay, bound classes add/remove.
+              </p>
+
+              <div class="row">
+                <button class="btn" x-on:click="toggleHot">Toggle “hot”</button>
+                <button class="btn" x-on:click="toggleDanger">Toggle “danger”</button>
+                <button class="btn warn" x-on:click="reset">Reset</button>
+              </div>
+
+              <div class="row">
+                <!-- This is the element whose class we bind -->
+                <button class="btn" x-bind:class="btnClass" x-bind:title="titleText" x-on:click="boop">
+                  Boop me
+                </button>
+
+                <span class="kbd">
+                  class = <span x-text="classPreview"></span>
+                </span>
+              </div>
+
+              <div class="row">
+                <div class="debug" x-debug="$hot"></div>
+                <div class="debug" x-debug="$danger"></div>
+              </div>
+            </div>
+          </section>
         </div>
       </section>
 
