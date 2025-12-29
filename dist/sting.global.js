@@ -208,11 +208,26 @@ var sting = (() => {
       }
     }
   }
-  function resolvePath(scope, path) {
+  function getPath(scope, path) {
     const parts = path.split(".").map((s) => s.trim()).filter(Boolean);
     let cur = scope;
     for (const p of parts) cur = cur?.[p];
     return cur;
+  }
+  function setPath(scope, path, value) {
+    const parts = path.split(".").map((s) => s.trim()).filter(Boolean);
+    if (parts.length === 0) return;
+    let cur = scope;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const key = parts[i];
+      cur = cur?.[key];
+      if (cur == null) {
+        console.warn(`setPath: "${path}" not reachable (missing "${key}")`);
+        return;
+      }
+    }
+    const last = parts[parts.length - 1];
+    cur[last] = value;
   }
   function mountComponent(rootEl) {
     const name = getAttr(rootEl, "x-data");
@@ -229,7 +244,8 @@ var sting = (() => {
         el,
         scope,
         getAttr,
-        resolvePath,
+        getPath,
+        setPath,
         effect,
         untrack,
         disposers
@@ -309,11 +325,11 @@ var sting = (() => {
 
   // sting/directives/x-text.js
   function bindXText(ctx) {
-    const { el, scope, getAttr: getAttr2, resolvePath: resolvePath2, effect: effect2, disposers } = ctx;
+    const { el, scope, getAttr: getAttr2, getPath: getPath2, effect: effect2, disposers } = ctx;
     const expr = getAttr2(el, "x-text");
     if (!expr) return;
     const dispose = effect2(() => {
-      const value = resolvePath2(scope, expr);
+      const value = getPath2(scope, expr);
       el.textContent = value ?? "";
     });
     disposers.push(dispose);
@@ -322,12 +338,12 @@ var sting = (() => {
 
   // sting/directives/x-show.js
   function bindXShow(ctx) {
-    const { el, scope, getAttr: getAttr2, resolvePath: resolvePath2, effect: effect2, disposers } = ctx;
+    const { el, scope, getAttr: getAttr2, getPath: getPath2, effect: effect2, disposers } = ctx;
     const expr = getAttr2(el, "x-show");
     if (!expr) return;
     const initialDisplay = el.style.display;
     const dispose = effect2(() => {
-      const value = resolvePath2(scope, expr);
+      const value = getPath2(scope, expr);
       el.style.display = value ? initialDisplay : "none";
     });
     disposers.push(dispose);
@@ -336,11 +352,11 @@ var sting = (() => {
 
   // sting/directives/x-on.js
   function bindXOn(ctx) {
-    const { el, scope, resolvePath: resolvePath2, disposers } = ctx;
+    const { el, scope, getPath: getPath2, disposers } = ctx;
     for (const attr of el.attributes) {
       if (!attr.name.startsWith("x-on:")) continue;
       const eventName = attr.name.slice(5);
-      const handlerFn = resolvePath2(scope, attr.value);
+      const handlerFn = getPath2(scope, attr.value);
       if (typeof handlerFn !== "function") {
         console.warn(`[sting] ${attr.name}="${attr.value}" is not a function`, el);
         continue;
@@ -354,12 +370,12 @@ var sting = (() => {
 
   // sting/directives/x-debug.js
   function bindXDebug(ctx) {
-    const { el, scope, getAttr: getAttr2, resolvePath: resolvePath2, effect: effect2, untrack: untrack2, disposers } = ctx;
+    const { el, scope, getAttr: getAttr2, getPath: getPath2, effect: effect2, untrack: untrack2, disposers } = ctx;
     const expr = getAttr2(el, "x-debug");
     if (!expr) return;
-    let sig = resolvePath2(scope, expr);
+    let sig = getPath2(scope, expr);
     if (typeof sig !== "function") {
-      sig = resolvePath2(scope, `$${expr}`);
+      sig = getPath2(scope, `$${expr}`);
     }
     const dispose = effect2(() => {
       if (typeof sig !== "function") {
@@ -374,6 +390,80 @@ var sting = (() => {
     disposers.push(dispose);
   }
   directive(bindXDebug);
+
+  // sting/directives/x-model.js
+  function bindXModel(ctx) {
+    const { el, scope, getAttr: getAttr2, getPath: getPath2, setPath: setPath2, effect: effect2, disposers } = ctx;
+    const expr = getAttr2(el, "x-model");
+    if (!expr) return;
+    const tag = el.tagName?.toLowerCase?.();
+    const isInput = tag === "input";
+    const isTextarea = tag === "textarea";
+    const isSelect = tag === "select";
+    if (!isInput && !isTextarea && !isSelect) {
+      console.warn(`[sting] x-model can only be used on input/textarea/select`, el);
+      return;
+    }
+    const field = (
+      /** @type {any} */
+      el
+    );
+    const inputType = isInput ? (
+      /** @type {HTMLInputElement} */
+      field.type
+    ) : "";
+    const isCheckbox = isInput && inputType === "checkbox";
+    const isRadio = isInput && inputType === "radio";
+    const onInput = () => {
+      if (isCheckbox) {
+        setPath2(
+          scope,
+          expr,
+          /** @type {HTMLInputElement} */
+          field.checked
+        );
+        return;
+      }
+      if (isRadio) {
+        const radio = (
+          /** @type {HTMLInputElement} */
+          field
+        );
+        if (radio.checked) setPath2(scope, expr, radio.value);
+        return;
+      }
+      setPath2(scope, expr, field.value);
+    };
+    const eventName = isSelect || isCheckbox || isRadio ? "change" : "input";
+    field.addEventListener(eventName, onInput);
+    disposers.push(() => field.removeEventListener(eventName, onInput));
+    const dispose = effect2(() => {
+      const value = getPath2(scope, expr);
+      if (isCheckbox) {
+        const next2 = !!value;
+        if (
+          /** @type {HTMLInputElement} */
+          field.checked !== next2
+        ) {
+          field.checked = next2;
+        }
+        return;
+      }
+      if (isRadio) {
+        const radio = (
+          /** @type {HTMLInputElement} */
+          field
+        );
+        const shouldCheck = String(value ?? "") === radio.value;
+        if (radio.checked !== shouldCheck) radio.checked = shouldCheck;
+        return;
+      }
+      const next = value ?? "";
+      if (field.value !== String(next)) field.value = String(next);
+    });
+    disposers.push(dispose);
+  }
+  directive(bindXModel);
 
   // sting/entry/entry-global.js
   var stingInstance = makeSting();
