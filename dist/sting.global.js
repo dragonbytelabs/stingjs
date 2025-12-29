@@ -559,6 +559,116 @@ var sting = (() => {
   }
   directive(bindXModel);
 
+  // sting/directives/x-bind.js
+  function bindXBind(ctx) {
+    const { el, scope, getPath: getPath2, effect: effect2, disposers } = ctx;
+    for (const attr of el.attributes) {
+      if (!attr.name.startsWith("x-bind:")) continue;
+      const arg = attr.name.slice("x-bind:".length).trim();
+      const expr = (attr.value ?? "").trim();
+      if (!arg) {
+        devWarn(`[sting] x-bind missing attribute name`, el);
+        continue;
+      }
+      if (!expr) {
+        devWarn(`[sting] x-bind:${arg} is missing an expression`, el);
+        continue;
+      }
+      devAssert(isPathSafe(expr), `[sting] x-bind:${arg} invalid path "${expr}"`);
+      const dispose = effect2(() => {
+        const resolved = getPath2(scope, expr);
+        const value = unwrap(resolved);
+        applyBinding(el, arg, value);
+      });
+      disposers.push(dispose);
+    }
+  }
+  directive(bindXBind);
+  function applyBinding(el, attr, value) {
+    const tag = elementTag(el);
+    if (attr === "disabled" || attr === "checked" || attr === "selected" || attr === "readonly" || attr === "required") {
+      const next = !!value;
+      const prop = attr === "readonly" ? "readOnly" : attr;
+      if (prop in el) el[prop] = next;
+      if (next) el.setAttribute(attr, "");
+      else el.removeAttribute(attr);
+      return;
+    }
+    if (attr === "value" && (tag === "input" || tag === "textarea" || tag === "select")) {
+      const next = value ?? "";
+      if (el.value !== String(next)) el.value = String(next);
+      return;
+    }
+    if (attr === "class") {
+      applyClassBinding(el, value);
+      return;
+    }
+    if (attr === "style") {
+      if (value && typeof value === "object") {
+        const parts = [];
+        for (const [k, v] of Object.entries(value)) {
+          if (v == null || v === false) continue;
+          parts.push(`${k}: ${String(v)};`);
+        }
+        el.setAttribute("style", parts.join(" "));
+      } else {
+        el.setAttribute("style", value ?? "");
+      }
+      return;
+    }
+    if (value == null || value === false) {
+      el.removeAttribute(attr);
+    } else {
+      el.setAttribute(attr, String(value));
+    }
+  }
+  var CLASS_STATE = /* @__PURE__ */ new WeakMap();
+  function initClassState(el) {
+    let st = CLASS_STATE.get(el);
+    if (st) return st;
+    st = {
+      base: new Set((el.getAttribute("class") || "").split(/\s+/).filter(Boolean)),
+      applied: /* @__PURE__ */ new Set()
+    };
+    CLASS_STATE.set(el, st);
+    return st;
+  }
+  function normalizeClassValue(value) {
+    const out = /* @__PURE__ */ new Set();
+    if (!value) return out;
+    if (typeof value === "string") {
+      value.split(/\s+/).filter(Boolean).forEach((c) => out.add(c));
+      return out;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (typeof item === "string") item.split(/\s+/).filter(Boolean).forEach((c) => out.add(c));
+      }
+      return out;
+    }
+    if (typeof value === "object") {
+      for (const [cls, on] of Object.entries(value)) {
+        if (on) cls.split(/\s+/).filter(Boolean).forEach((c) => out.add(c));
+      }
+      return out;
+    }
+    return out;
+  }
+  function applyClassBinding(el, value) {
+    const st = initClassState(el);
+    const next = normalizeClassValue(value);
+    for (const c of st.applied) {
+      el.classList.remove(c);
+    }
+    for (const c of st.base) {
+      el.classList.add(c);
+    }
+    for (const c of next) {
+      el.classList.add(c);
+    }
+    st.applied = next;
+  }
+
   // sting/entry/entry-global.js
   var stingInstance = makeSting();
   var entry_global_default = stingInstance;

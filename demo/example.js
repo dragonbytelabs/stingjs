@@ -107,3 +107,60 @@ sting.data("formLab", () => {
     summary,
   }
 })
+
+/**
+ * CLASS LAB
+ * Exercises:
+ * - x-bind:class with object syntax
+ * - x-bind:title
+ * - signals + computed
+ */
+sting.data("classLab", () => {
+  const [hot, setHot] = sting.signal(false)
+  const [danger, setDanger] = sting.signal(false)
+  const [boops, setBoops] = sting.signal(0)
+
+  const toggleHot = () => setHot(v => !v)
+  const toggleDanger = () => setDanger(v => !v)
+  const reset = () => { setHot(false); setDanger(false); setBoops(0) }
+  const boop = () => setBoops(n => n + 1)
+
+  // object syntax: { className: boolean }
+  const btnClass = sting.computed(() => ({
+    good: hot(),      // re-use your existing CSS .btn.good border
+    bad: danger(),    // re-use your existing CSS .btn.bad border
+    // add your own classes too (see CSS note below)
+    "is-hot": hot(),
+    "is-danger": danger(),
+  }))
+
+  const classPreview = sting.computed(() => {
+    const c = btnClass()
+    return Object.entries(c).filter(([, on]) => on).map(([k]) => k).join(" ") || "(none)"
+  })
+
+  const titleText = sting.computed(() => {
+    const bits = []
+    if (hot()) bits.push("🔥 hot")
+    if (danger()) bits.push("☠️ danger")
+    if (bits.length === 0) bits.push("😌 calm")
+    return `Boops=${boops()} | ${bits.join(" + ")}`
+  })
+
+  return {
+    // debug
+    $hot: hot,
+    $danger: danger,
+
+    // handlers
+    toggleHot,
+    toggleDanger,
+    reset,
+    boop,
+
+    // bound values
+    btnClass,
+    classPreview,
+    titleText,
+  }
+})
