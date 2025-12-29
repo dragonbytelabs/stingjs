@@ -396,8 +396,7 @@ var sting = (() => {
     if (!expr) return;
     devAssert(isPathSafe(expr), `[sting] x-text invalid path "${expr}"`);
     const dispose = effect2(() => {
-      const resolved = getPath2(scope, expr);
-      const value = unwrap(resolved);
+      const value = unwrap(getPath2(scope, expr));
       el.textContent = value ?? "";
     });
     disposers.push(dispose);
@@ -412,8 +411,7 @@ var sting = (() => {
     devAssert(isPathSafe(expr), `[sting] x-show invalid path "${expr}"`);
     const initialDisplay = el.style.display;
     const dispose = effect2(() => {
-      const resolved = getPath2(scope, expr);
-      const value = unwrap(resolved);
+      const value = unwrap(getPath2(scope, expr));
       el.style.display = value ? initialDisplay : "none";
     });
     disposers.push(dispose);
