@@ -44,6 +44,7 @@ sting.data("profile", () => {
     toggle,
     rename,
     destroyMe,
+    placeholder,
   }
 })
 

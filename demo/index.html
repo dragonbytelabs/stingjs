@@ -51,11 +51,12 @@
 
               <label>
                 Name (two-way bound)
-                <input class="input" x-model="user.name" placeholder="Type a hobbit name..." />
+                <input class="input" x-bind:title="user.name" x-model="user.name" placeholder="Type a hobbit name..." />
               </label>
 
               <div class="row">
                 <div class="debug" x-debug="$open"></div>
+                <span class="kbd"><span x-text="placeholder"></span></span>
               </div>
 
               <div class="sep"></div>
