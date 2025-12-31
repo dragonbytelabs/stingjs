@@ -6,13 +6,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="color-scheme" content="dark light" />
   <title>StingJS Demo — Glows When Complexity Is Near</title>
+
   <script src="../dist/sting.global.js" defer></script>
   <script src="./example.js" type="module" defer></script>
+
   <link rel="stylesheet" href="./main.css" />
 </head>
 
 <body>
-  <div class="wrap">
+  <div class="wrap" id="demoRoot">
     <header>
       <div class="brand">
         <div class="logo" aria-hidden="true"></div>
@@ -24,8 +26,14 @@
 
       <div class="pillrow" aria-label="Build info">
         <span class="pill">global build: <span class="kbd">sting.global.js</span></span>
-        <span class="pill">directives: <span class="kbd">text</span> <span class="kbd">show</span> <span
-            class="kbd">on</span> <span class="kbd">debug</span> <span class="kbd">model</span></span>
+        <span class="pill">directives:
+          <span class="kbd">text</span>
+          <span class="kbd">show</span>
+          <span class="kbd">on</span>
+          <span class="kbd">debug</span>
+          <span class="kbd">model</span>
+          <span class="kbd">bind</span>
+        </span>
       </div>
     </header>
 
@@ -42,7 +50,9 @@
             <header>
               <h2 id="profile-title">Profile (x-text, x-show, x-on, x-model, x-debug)</h2>
             </header>
-            <div class="content" x-data="profile">
+
+            <!-- NOTE: data-testid added; no layout impact -->
+            <div class="content" x-data="profile" data-testid="profile">
               <div class="row">
                 <button class="btn" x-on:click="toggle">Toggle visibility</button>
                 <button class="btn warn" x-on:click="rename">Rename → Frodo</button>
@@ -51,22 +61,27 @@
 
               <label>
                 Name (two-way bound)
-                <input class="input" x-bind:title="user.name" x-model="user.name" placeholder="Type a hobbit name..." />
+                <input
+                  class="input"
+                  x-bind:title="user.name"
+                  x-model="user.name"
+                  placeholder="Type a hobbit name..."
+                  data-testid="profile-name-input"
+                />
               </label>
 
               <div class="row">
-                <div class="debug" x-debug="$open"></div>
-                <span class="kbd"><span x-text="placeholder"></span></span>
+                <div class="debug" x-debug="$open" data-testid="profile-open-debug"></div>
               </div>
 
               <div class="sep"></div>
 
               <p class="hint">
-                The span below is guarded by <span class="kbd">x-show="open"</span> and populated by <span
-                  class="kbd">x-text="user.name"</span>.
+                The span below is guarded by <span class="kbd">x-show="open"</span> and populated by
+                <span class="kbd">x-text="user.name"</span>.
               </p>
 
-              <p>
+              <p data-testid="profile-greeting">
                 <span x-show="open">
                   👋 Hello, <strong><span x-text="user.name"></span></strong>. Your UI currently glows at:
                   <span class="kbd"><span x-text="glowLevel"></span></span>
@@ -80,7 +95,9 @@
             <header>
               <h2 id="counter-title">Counter (events + derived output)</h2>
             </header>
-            <div class="content" x-data="counter">
+
+            <!-- NOTE: data-testid added; no layout impact -->
+            <div class="content" x-data="counter" data-testid="counter">
               <div class="row">
                 <button class="btn good" x-on:click="inc">+1</button>
                 <button class="btn" x-on:click="dec">-1</button>
@@ -92,8 +109,10 @@
               </p>
 
               <div class="row">
-                <div class="debug" x-debug="$count"></div>
-                <div class="debug">mood: <span class="kbd"><span x-text="mood"></span></span></div>
+                <div class="debug" x-debug="$count" data-testid="counter-count-debug"></div>
+                <div class="debug" data-testid="counter-mood">
+                  mood: <span class="kbd"><span x-text="mood"></span></span>
+                </div>
               </div>
             </div>
           </section>
@@ -103,10 +122,12 @@
             <header>
               <h2 id="formlab-title">Form Lab (checkbox + select via x-model)</h2>
             </header>
-            <div class="content" x-data="formLab">
+
+            <!-- NOTE: data-testid added; no layout impact -->
+            <div class="content" x-data="formLab" data-testid="formLab">
               <label>
                 Choose your fellowship role (select)
-                <select x-model="role">
+                <select x-model="role" data-testid="form-role">
                   <option value="burglar">Burglar</option>
                   <option value="wizard">Wizard</option>
                   <option value="ranger">Ranger</option>
@@ -116,54 +137,60 @@
 
               <div class="row">
                 <label style="display:flex; gap:10px; align-items:center">
-                  <input type="checkbox" x-model="stealthMode" />
+                  <input type="checkbox" x-model="stealthMode" data-testid="form-stealth" />
                   <span>Stealth mode (checkbox)</span>
                 </label>
               </div>
 
               <div class="row">
-                <div class="debug" x-debug="$role"></div>
-                <div class="debug" x-debug="$stealthMode"></div>
+                <div class="debug" x-debug="$role" data-testid="form-role-debug"></div>
+                <div class="debug" x-debug="$stealthMode" data-testid="form-stealth-debug"></div>
               </div>
 
-              <p>
+              <p data-testid="form-summary">
                 Current build: <span class="kbd"><span x-text="summary"></span></span>
               </p>
             </div>
           </section>
+
           <!-- CLASS LAB -->
           <section class="card" aria-labelledby="classlab-title">
             <header>
               <h2 id="classlab-title">Class Lab (x-bind:class object syntax)</h2>
             </header>
 
-            <div class="content" x-data="classLab">
+            <!-- NOTE: data-testid added; no layout impact -->
+            <div class="content" x-data="classLab" data-testid="classLab">
               <p class="hint">
-                This tests <span class="kbd">x-bind:class</span> with <span class="kbd">{ className: boolean }</span>
-                syntax.
+                This tests <span class="kbd">x-bind:class</span> with <span class="kbd">{ className: boolean }</span>.
                 Base classes stay, bound classes add/remove.
               </p>
 
               <div class="row">
-                <button class="btn" x-on:click="toggleHot">Toggle “hot”</button>
-                <button class="btn" x-on:click="toggleDanger">Toggle “danger”</button>
-                <button class="btn warn" x-on:click="reset">Reset</button>
+                <button class="btn" x-on:click="toggleHot" data-testid="class-toggle-hot">Toggle “hot”</button>
+                <button class="btn" x-on:click="toggleDanger" data-testid="class-toggle-danger">Toggle “danger”</button>
+                <button class="btn warn" x-on:click="reset" data-testid="class-reset">Reset</button>
               </div>
 
               <div class="row">
-                <!-- This is the element whose class we bind -->
-                <button class="btn" x-bind:class="btnClass" x-bind:title="titleText" x-on:click="boop">
+                <button
+                  class="btn"
+                  x-bind:class="btnClass"
+                  x-bind:title="titleText"
+                  x-on:click="boop"
+                  data-testid="class-boop"
+                >
                   Boop me
                 </button>
 
-                <span class="kbd">
+                <span class="kbd" data-testid="class-preview">
                   class = <span x-text="classPreview"></span>
                 </span>
               </div>
 
               <div class="row">
-                <div class="debug" x-debug="$hot"></div>
-                <div class="debug" x-debug="$danger"></div>
+                <div class="debug" x-debug="$hot" data-testid="class-hot-debug"></div>
+                <div class="debug" x-debug="$danger" data-testid="class-danger-debug"></div>
               </div>
             </div>
           </section>
@@ -184,13 +211,12 @@
               <li><span class="kbd">x-show</span> toggling display</li>
               <li><span class="kbd">x-on</span> binding click handlers</li>
               <li><span class="kbd">x-model</span> input/select/checkbox 2-way binding</li>
+              <li><span class="kbd">x-bind</span> attribute + class binding</li>
               <li><span class="kbd">MutationObserver</span> cleanup when a component root is removed</li>
             </ul>
           </section>
 
           <div class="sep"></div>
-
-
         </div>
       </aside>
     </main>

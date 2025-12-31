@@ -11,9 +11,15 @@
     }
   },
   "scripts": {
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug"
   },
   "devDependencies": {
-    "esbuild": "^0.27.2"
+    "@playwright/test": "^1.57.0",
+    "esbuild": "^0.27.2",
+    "http-server": "^14.1.1"
   }
 }
