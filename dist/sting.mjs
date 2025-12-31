@@ -309,9 +309,11 @@ function mountComponent(rootEl) {
     return;
   }
   const scope = factory();
+  rootEl.__stingScope = scope;
   const disposers = [];
   applyDirectives(rootEl, scope, disposers);
   return () => {
+    delete rootEl.__stingScope;
     for (let i = disposers.length - 1; i >= 0; i--) {
       try {
         disposers[i]();
@@ -442,13 +444,14 @@ function bindXOn(ctx) {
     const handler = (ev) => {
       const { fnPath, arg } = parsed;
       devAssert(isPathSafe(fnPath), `[sting] x-on:${eventName} invalid fn path "${fnPath}"`);
-      const maybeFn = unwrap(getPath2(scope, fnPath));
+      const scopeNow = getClosestScope(el) || scope;
+      const maybeFn = getPath2(scopeNow, fnPath);
       devAssert(typeof maybeFn === "function", `[sting] x-on:${eventName} "${fnPath}" is not a function`);
       if (arg == null) {
         maybeFn(ev);
         return;
       }
-      const argVal = resolveArg(scope, getPath2, arg);
+      const argVal = resolveArg(scopeNow, getPath2, arg);
       maybeFn(argVal, ev);
     };
     el.addEventListener(eventName, handler);
@@ -456,6 +459,14 @@ function bindXOn(ctx) {
   }
 }
 directive(bindXOn);
+function getClosestScope(el) {
+  let cur = el;
+  while (cur && cur !== document.body) {
+    if (cur.hasAttribute?.("x-data") && cur.__stingScope) return cur.__stingScope;
+    cur = cur.parentNode;
+  }
+  return null;
+}
 function parseOnExpr(expr) {
   const s = expr.trim();
   const m = s.match(/^([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*\(\s*(.*?)\s*\)\s*$/);
@@ -479,7 +490,8 @@ function resolveArg(scope, getPath2, argExpr) {
   if (s === "null") return null;
   if (s === "undefined") return void 0;
   devAssert(isPathSafe(s), `[sting] x-on arg must be a safe path or literal, got "${s}"`);
-  return unwrap(getPath2(scope, s));
+  const v = getPath2(scope, s);
+  return unwrap(v);
 }
 
 // sting/directives/x-debug.js

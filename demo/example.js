@@ -211,6 +211,7 @@ sting.data("forLab", () => {
   // We'll expose remove(index) that returns a handler.
   const remove = (i) => () => setItems(xs => xs.filter((_, idx) => idx !== i))
 
+
   const len = sting.computed(() => items().length)
 
   return { items, add, pop, reset, remove, len }

@@ -27,7 +27,12 @@ export function bindXOn(ctx) {
       const { fnPath, arg } = parsed
 
       devAssert(isPathSafe(fnPath), `[sting] x-on:${eventName} invalid fn path "${fnPath}"`)
-      const maybeFn = unwrap(getPath(scope, fnPath))
+
+      // IMPORTANT: resolve scope at click-time
+      const scopeNow = getClosestScope(el) || scope
+
+      // IMPORTANT: do NOT unwrap() handlers; unwrap() may execute functions
+      const maybeFn = getPath(scopeNow, fnPath)
 
       devAssert(typeof maybeFn === "function", `[sting] x-on:${eventName} "${fnPath}" is not a function`)
 
@@ -39,7 +44,7 @@ export function bindXOn(ctx) {
         return
       }
 
-      const argVal = resolveArg(scope, getPath, arg)
+      const argVal = resolveArg(scopeNow, getPath, arg)
       maybeFn(argVal, ev)
     }
 
@@ -49,6 +54,15 @@ export function bindXOn(ctx) {
 }
 
 directive(bindXOn)
+
+function getClosestScope(el) {
+  let cur = el
+  while (cur && cur !== document.body) {
+    if (cur.hasAttribute?.("x-data") && cur.__stingScope) return cur.__stingScope
+    cur = cur.parentNode
+  }
+  return null
+}
 
 // Supports:
 //  - "inc"
@@ -62,7 +76,6 @@ function parseOnExpr(expr) {
   if (m) {
     const fnPath = m[1]
     const rawArg = m[2]
-    // allow empty arg: fn()
     const arg = rawArg === "" ? null : rawArg
     return { fnPath, arg }
   }
@@ -84,13 +97,14 @@ function resolveArg(scope, getPath, argExpr) {
   // number literal
   if (/^-?\d+(?:\.\d+)?$/.test(s)) return Number(s)
 
-  // boolean/null
+  // boolean/null/undefined
   if (s === "true") return true
   if (s === "false") return false
   if (s === "null") return null
   if (s === "undefined") return undefined
 
-  // identifier/path from scope
+  // identifier/path from scope (allow signals here)
   devAssert(isPathSafe(s), `[sting] x-on arg must be a safe path or literal, got "${s}"`)
-  return unwrap(getPath(scope, s))
+  const v = getPath(scope, s)
+  return unwrap(v)
 }
