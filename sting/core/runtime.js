@@ -3,7 +3,6 @@ import { getFactory } from "./registry.js"
 import { binders } from "./directives.js"
 import { devAssert, devWarn } from "./utils.js"
 
-
 /**
  * Context passed to directive binders.
  *
@@ -94,6 +93,30 @@ function setPath(scope, path, value) {
 }
 
 /**
+ * Apply all registered directives to the subtree of rootEl.
+ *
+ * @param {Element} rootEl
+ * @param {any} scope
+ * @param {Array<() => void>} disposers
+ */
+export function applyDirectives(rootEl, scope, disposers) {
+    walk(rootEl, (el) => {
+        /** @type {DirectiveContext} */
+        const ctx = {
+            el,
+            scope,
+            getAttr,
+            getPath,
+            setPath,
+            effect,
+            untrack,
+            disposers,
+        }
+        for (const bind of binders) bind(ctx)
+    })
+}
+
+/**
  * Mount a component root: creates the scope and binds directives in its subtree.
  *
  * Returns a destroy function that removes event listeners and disposes effects
@@ -121,25 +144,8 @@ function mountComponent(rootEl) {
     const scope = factory()
 
     /** @type {Array<() => void>} */
-    const disposers = [] // ✅ per-component, not global
-
-    walk(rootEl, (el) => {
-        /** @type {DirectiveContext} */
-        const ctx = {
-            el,
-            scope,
-            getAttr,
-            getPath,
-            setPath,
-            effect,
-            untrack,
-            disposers,
-        }
-
-        for (const bind of binders) {
-            bind(ctx)
-        }
-    })
+    const disposers = []
+    applyDirectives(rootEl, scope, disposers)
 
     return () => {
         for (let i = disposers.length - 1; i >= 0; i--) {
