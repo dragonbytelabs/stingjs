@@ -124,9 +124,22 @@ export function signal(initial) {
  */
 export function effect(fn) {
     let disposed = false
+
+    /** @type {null | (() => void)} */
+    let cleanup = null
+
     /** @type {Runner} */
     const runner = /** @type {any} */ (function run() {
         if (disposed) return
+
+        if (cleanup) {
+            try {
+                cleanup()
+            } catch (e) {
+                console.error("[sting] effect cleanup error:", e)
+            }
+        }
+
         // Unsubscribe from previous dependencies (if any)
         for (const depObservers of runner.deps) {
             depObservers.delete(runner)
@@ -137,7 +150,10 @@ export function effect(fn) {
         const prev = Listener
         Listener = runner
         try {
-            fn()
+            const ret = fn()
+            if (typeof ret === "function") {
+                cleanup = ret
+            }
         } finally {
             Listener = prev
         }
@@ -148,10 +164,18 @@ export function effect(fn) {
     // Initial run
     runner()
 
-    // Dispose: unsubscribe and make it inert
+    // Dispose: run cleanup + unsubscribe 
     return function dispose() {
         if (disposed) return
         disposed = true
+
+        if(cleanup) {
+            try {
+                cleanup()
+            } catch (e) {
+                console.error("[sting] effect cleanup error:", e)
+            }
+        }
 
         for (const depObservers of runner.deps) {
             depObservers.delete(runner)
@@ -173,14 +197,14 @@ export function effect(fn) {
  * setCount(1) // triggers effect, logs 2
  */
 export function computed(fn) {
-  const [get, set] = signal(undefined)
+    const [get, set] = signal(undefined)
 
-  const dispose = effect(() => {
-    set(fn())
-  })
+    const dispose = effect(() => {
+        set(fn())
+    })
 
-  get.dispose = dispose
-  return get
+    get.dispose = dispose
+    return get
 }
 
 /**
