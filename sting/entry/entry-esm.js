@@ -8,6 +8,7 @@ import "../directives/x-debug.js"
 import "../directives/x-model.js"
 import "../directives/x-bind.js"
 import "../directives/x-if.js"
+import "../directives/x-for.js"
 
 const sting = makeSting()
 

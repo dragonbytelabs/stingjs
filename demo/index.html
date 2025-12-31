@@ -244,6 +244,40 @@
             </div>
           </section>
 
+          <!-- X-FOR LAB -->
+          <section class="card" aria-labelledby="forlab-title">
+            <header>
+              <h2 id="forlab-title">For Lab (x-for on &lt;template&gt;)</h2>
+            </header>
+
+            <div class="content" x-data="forLab" data-testid="forLab">
+              <p class="hint">
+                Tests <span class="kbd">x-for</span> cloning template content and hydrating
+                <span class="kbd">x-text</span> + <span class="kbd">x-on</span>.
+              </p>
+
+              <div class="row">
+                <button class="btn good" x-on:click="add" data-testid="for-add">+ Add</button>
+                <button class="btn" x-on:click="pop" data-testid="for-pop">Pop</button>
+                <button class="btn warn" x-on:click="reset" data-testid="for-reset">Reset</button>
+                <span class="pill">len = <span class="kbd"><span x-text="len"></span></span></span>
+              </div>
+
+              <div class="sep"></div>
+
+              <ul class="forlab__list" data-testid="for-list">
+                <template x-for="(t, i) in items">
+                  <li class="forlab__item" data-testid="for-item">
+                    <span class="kbd">#<span x-text="i"></span></span>
+                    <span x-text="t"></span>
+                    <button class="btn" x-on:click="remove(i)" data-testid="for-remove">remove</button>
+                  </li>
+                </template>
+              </ul>
+            </div>
+          </section>
+
+
         </div>
       </section>
 
