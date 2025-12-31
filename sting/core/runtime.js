@@ -100,8 +100,13 @@ function setPath(scope, path, value) {
  * @param {Array<() => void>} disposers
  */
 export function applyDirectives(rootEl, scope, disposers) {
+    /** @type {(subtreeRootEl: Element, subtreeScope: any, subtreeDisposers: Array<() => void>) => void} */
+    const hydrate = (subtreeRootEl, subtreeScope, subtreeDisposers) => {
+        applyDirectives(subtreeRootEl, subtreeScope, subtreeDisposers)
+    }
+
     walk(rootEl, (el) => {
-        /** @type {DirectiveContext} */
+        /** @type {import("./runtime.js").DirectiveContext & { hydrate: typeof hydrate }} */
         const ctx = {
             el,
             scope,
@@ -111,10 +116,13 @@ export function applyDirectives(rootEl, scope, disposers) {
             effect,
             untrack,
             disposers,
+            hydrate,
         }
+
         for (const bind of binders) bind(ctx)
     })
 }
+
 
 /**
  * Mount a component root: creates the scope and binds directives in its subtree.
@@ -142,12 +150,14 @@ function mountComponent(rootEl) {
     }
 
     const scope = factory()
+    rootEl.__stingScope = scope
 
     /** @type {Array<() => void>} */
     const disposers = []
     applyDirectives(rootEl, scope, disposers)
 
     return () => {
+        delete rootEl.__stingScope
         for (let i = disposers.length - 1; i >= 0; i--) {
             try {
                 disposers[i]()

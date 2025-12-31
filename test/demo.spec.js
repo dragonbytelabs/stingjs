@@ -1,19 +1,21 @@
 import { test, expect } from "@playwright/test"
+import { gotoDemo } from "./helpers.js"
 
 test("profile demo works end-to-end", async ({ page }) => {
-  await page.goto("/demo/index.html")
+  await gotoDemo(page)
 
-  const input = page.locator('input[x-model="user.name"]')
+  const profile = page.getByTestId("profile")
+  const input = profile.getByTestId("profile-name-input")
 
   await input.fill("Gandalf")
 
-  // x-text updates
-  await expect(page.locator("text=Gandalf")).toBeVisible()
+  // x-text updates (scoped so it won't match ForLab)
+  await expect(profile.locator('[x-text="user.name"]')).toHaveText("Gandalf")
 
   // x-bind:title updates
   await expect(input).toHaveAttribute("title", "Gandalf")
 
-  // x-show toggles
-  await page.click("text=Toggle visibility")
-  await expect(page.locator("text=Hello")).toBeHidden()
+  // x-show toggles (scoped to greeting)
+  await profile.getByRole("button", { name: "Toggle visibility" }).click()
+  await expect(profile.getByTestId("profile-greeting")).toBeHidden()
 })

@@ -297,6 +297,9 @@ var sting = (() => {
     cur[last] = value;
   }
   function applyDirectives(rootEl, scope, disposers) {
+    const hydrate = (subtreeRootEl, subtreeScope, subtreeDisposers) => {
+      applyDirectives(subtreeRootEl, subtreeScope, subtreeDisposers);
+    };
     walk(rootEl, (el) => {
       const ctx = {
         el,
@@ -306,7 +309,8 @@ var sting = (() => {
         setPath,
         effect,
         untrack,
-        disposers
+        disposers,
+        hydrate
       };
       for (const bind of binders) bind(ctx);
     });
@@ -324,9 +328,11 @@ var sting = (() => {
       return;
     }
     const scope = factory();
+    rootEl.__stingScope = scope;
     const disposers = [];
     applyDirectives(rootEl, scope, disposers);
     return () => {
+      delete rootEl.__stingScope;
       for (let i = disposers.length - 1; i >= 0; i--) {
         try {
           disposers[i]();
@@ -440,42 +446,71 @@ var sting = (() => {
   // sting/directives/x-on.js
   function bindXOn(ctx) {
     const { el, scope, getPath: getPath2, disposers } = ctx;
-    const bound = getOrInitBoundMap(el);
     for (const attr of el.attributes) {
       if (!attr.name.startsWith("x-on:")) continue;
-      const eventName = attr.name.slice(5).trim();
+      const eventName = attr.name.slice("x-on:".length).trim();
       const expr = (attr.value ?? "").trim();
       if (!eventName) {
-        devWarn(`[sting] invalid ${attr.name} (missing event name)`, el);
+        devWarn(`[sting] x-on missing event name`, el);
         continue;
       }
       if (!expr) {
-        devWarn(`[sting] ${attr.name} is missing a handler name`, el);
+        devWarn(`[sting] x-on:${eventName} missing expression`, el);
         continue;
       }
-      devAssert(isPathSafe(expr), `[sting] ${attr.name} invalid handler path "${expr}"`);
-      const key = `${eventName}::${expr}`;
-      if (bound.has(key)) continue;
-      const handlerFn = getPath2(scope, expr);
-      if (typeof handlerFn !== "function") {
-        devWarn(`[sting] ${attr.name}="${expr}" is not a function`, el);
-        continue;
-      }
-      const handler = (e) => handlerFn(e);
+      const parsed = parseOnExpr(expr);
+      devAssert(!!parsed, `[sting] x-on:${eventName} invalid expression "${expr}"`);
+      const handler = (ev) => {
+        const { fnPath, arg } = parsed;
+        devAssert(isPathSafe(fnPath), `[sting] x-on:${eventName} invalid fn path "${fnPath}"`);
+        const scopeNow = getClosestScope(el) || scope;
+        const maybeFn = getPath2(scopeNow, fnPath);
+        devAssert(typeof maybeFn === "function", `[sting] x-on:${eventName} "${fnPath}" is not a function`);
+        if (arg == null) {
+          maybeFn(ev);
+          return;
+        }
+        const argVal = resolveArg(scopeNow, getPath2, arg);
+        maybeFn(argVal, ev);
+      };
       el.addEventListener(eventName, handler);
       disposers.push(() => el.removeEventListener(eventName, handler));
-      bound.set(key, handler);
     }
   }
   directive(bindXOn);
-  var _boundListeners = /* @__PURE__ */ new WeakMap();
-  function getOrInitBoundMap(el) {
-    let m = _boundListeners.get(el);
-    if (!m) {
-      m = /* @__PURE__ */ new Map();
-      _boundListeners.set(el, m);
+  function getClosestScope(el) {
+    let cur = el;
+    while (cur && cur !== document.body) {
+      if (cur.hasAttribute?.("x-data") && cur.__stingScope) return cur.__stingScope;
+      cur = cur.parentNode;
     }
-    return m;
+    return null;
+  }
+  function parseOnExpr(expr) {
+    const s = expr.trim();
+    const m = s.match(/^([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*\(\s*(.*?)\s*\)\s*$/);
+    if (m) {
+      const fnPath = m[1];
+      const rawArg = m[2];
+      const arg = rawArg === "" ? null : rawArg;
+      return { fnPath, arg };
+    }
+    if (isPathSafe(s)) return { fnPath: s, arg: null };
+    return null;
+  }
+  function resolveArg(scope, getPath2, argExpr) {
+    const s = String(argExpr).trim();
+    if (s.startsWith('"') && s.endsWith('"') || s.startsWith("'") && s.endsWith("'")) {
+      return s.slice(1, -1);
+    }
+    if (/^-?\d+(?:\.\d+)?$/.test(s)) return Number(s);
+    if (s === "true") return true;
+    if (s === "false") return false;
+    if (s === "null") return null;
+    if (s === "undefined") return void 0;
+    devAssert(isPathSafe(s), `[sting] x-on arg must be a safe path or literal, got "${s}"`);
+    const v = getPath2(scope, s);
+    return unwrap(v);
   }
 
   // sting/directives/x-debug.js
@@ -730,6 +765,131 @@ var sting = (() => {
     disposers.push(dispose);
   }
   directive(bindXIf);
+
+  // sting/directives/x-for.js
+  var FOR_STATE = /* @__PURE__ */ new WeakMap();
+  function bindXFor(ctx) {
+    const { el, scope, getAttr: getAttr2, getPath: getPath2, effect: effect2, disposers, hydrate } = ctx;
+    const expr = getAttr2(el, "x-for");
+    if (!expr) return;
+    devAssert(el.tagName.toLowerCase() === "template", `[sting] x-for can only be used on <template>`);
+    const parsed = parseForExpr(expr);
+    if (!parsed) {
+      devWarn(
+        `[sting] x-for invalid expression "${expr}". Expected: "item in items" or "(item, i) in items"`,
+        el
+      );
+      return;
+    }
+    const { itemName, indexName, listPath } = parsed;
+    devAssert(isPathSafe(listPath), `[sting] x-for list must be a safe path, got "${listPath}"`);
+    let st = FOR_STATE.get(el);
+    if (!st) {
+      st = {
+        nodes: (
+          /** @type {Node[]} */
+          []
+        ),
+        instanceDisposers: (
+          /** @type {Array<Array<() => void>>} */
+          []
+        ),
+        marker: document.createComment("sting:x-for"),
+        initialized: false
+      };
+      FOR_STATE.set(el, st);
+    }
+    if (!st.initialized) {
+      st.initialized = true;
+      el.parentNode?.insertBefore(st.marker, el.nextSibling);
+    }
+    const dispose = effect2(() => {
+      const resolved = getPath2(scope, listPath);
+      let listVal = unwrap(resolved);
+      while (typeof listVal === "function") listVal = listVal();
+      const items = normalizeIterable(listVal);
+      clearForInstances(st);
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const childScope = Object.create(scope);
+        childScope[itemName] = item;
+        if (indexName) childScope[indexName] = i;
+        const frag = document.importNode(el.content, true);
+        const newNodes = Array.from(frag.childNodes);
+        st.marker.parentNode?.insertBefore(frag, st.marker);
+        for (const n of newNodes) st.nodes.push(n);
+        const localDisposers = [];
+        st.instanceDisposers.push(localDisposers);
+        for (const n of newNodes) {
+          if (n.nodeType === Node.ELEMENT_NODE) {
+            hydrate(
+              /** @type {Element} */
+              n,
+              childScope,
+              localDisposers
+            );
+          }
+        }
+      }
+    });
+    disposers.push(() => {
+      try {
+        dispose();
+      } finally {
+        clearForInstances(st);
+        try {
+          st.marker.parentNode?.removeChild(st.marker);
+        } catch {
+        }
+        FOR_STATE.delete(el);
+      }
+    });
+  }
+  directive(bindXFor);
+  function parseForExpr(expr) {
+    const m = expr.trim().match(/^\s*(\([^)]+\)|[A-Za-z_$][\w$]*)\s+in\s+(.+?)\s*$/);
+    if (!m) return null;
+    const lhs = m[1].trim();
+    const listPath = m[2].trim();
+    let itemName = "";
+    let indexName = "";
+    if (lhs.startsWith("(")) {
+      const inner = lhs.slice(1, -1);
+      const parts = inner.split(",").map((s) => s.trim()).filter(Boolean);
+      if (parts.length < 1) return null;
+      itemName = parts[0];
+      indexName = parts[1] || "";
+    } else {
+      itemName = lhs;
+    }
+    if (!/^[A-Za-z_$][\w$]*$/.test(itemName)) return null;
+    if (indexName && !/^[A-Za-z_$][\w$]*$/.test(indexName)) return null;
+    return { itemName, indexName: indexName || null, listPath };
+  }
+  function normalizeIterable(val) {
+    if (Array.isArray(val)) return val;
+    if (val == null) return [];
+    if (typeof val[Symbol.iterator] === "function") return Array.from(val);
+    return [];
+  }
+  function clearForInstances(st) {
+    for (const ds of st.instanceDisposers) {
+      for (let i = ds.length - 1; i >= 0; i--) {
+        try {
+          ds[i]();
+        } catch {
+        }
+      }
+    }
+    st.instanceDisposers.length = 0;
+    for (const n of st.nodes) {
+      try {
+        n.parentNode?.removeChild(n);
+      } catch {
+      }
+    }
+    st.nodes.length = 0;
+  }
 
   // sting/entry/entry-global.js
   var stingInstance = makeSting();

@@ -199,3 +199,21 @@ sting.data("ifLab", () => {
     inc,
   }
 })
+
+sting.data("forLab", () => {
+  const [items, setItems] = sting.signal(["Gandalf", "Aragorn", "Legolas"])
+
+  const add = () => setItems(xs => xs.concat(`Hobbit-${xs.length + 1}`))
+  const pop = () => setItems(xs => xs.slice(0, -1))
+  const reset = () => setItems(["Gandalf", "Aragorn", "Legolas"])
+
+  // This is the one “gap”: without eval, remove(i) needs to be a function on scope.
+  // We'll expose remove(index) that returns a handler.
+  const remove = (i) => () => setItems(xs => xs.filter((_, idx) => idx !== i))
+
+
+  const len = sting.computed(() => items().length)
+
+  return { items, add, pop, reset, remove, len }
+})
+
