@@ -125,10 +125,18 @@ var sting = (() => {
   }
   function effect(fn) {
     let disposed = false;
+    let cleanup = null;
     const runner = (
       /** @type {any} */
       (function run() {
         if (disposed) return;
+        if (cleanup) {
+          try {
+            cleanup();
+          } catch (e) {
+            console.error("[sting] effect cleanup error:", e);
+          }
+        }
         for (const depObservers of runner.deps) {
           depObservers.delete(runner);
         }
@@ -136,7 +144,10 @@ var sting = (() => {
         const prev = Listener;
         Listener = runner;
         try {
-          fn();
+          const ret = fn();
+          if (typeof ret === "function") {
+            cleanup = ret;
+          }
         } finally {
           Listener = prev;
         }
@@ -147,6 +158,13 @@ var sting = (() => {
     return function dispose() {
       if (disposed) return;
       disposed = true;
+      if (cleanup) {
+        try {
+          cleanup();
+        } catch (e) {
+          console.error("[sting] effect cleanup error:", e);
+        }
+      }
       for (const depObservers of runner.deps) {
         depObservers.delete(runner);
       }
@@ -278,6 +296,21 @@ var sting = (() => {
     const last = parts[parts.length - 1];
     cur[last] = value;
   }
+  function applyDirectives(rootEl, scope, disposers) {
+    walk(rootEl, (el) => {
+      const ctx = {
+        el,
+        scope,
+        getAttr,
+        getPath,
+        setPath,
+        effect,
+        untrack,
+        disposers
+      };
+      for (const bind of binders) bind(ctx);
+    });
+  }
   function mountComponent(rootEl) {
     devAssert(rootEl instanceof Element, "[sting] mountComponent expects an Element");
     const name = getAttr(rootEl, "x-data");
@@ -292,21 +325,7 @@ var sting = (() => {
     }
     const scope = factory();
     const disposers = [];
-    walk(rootEl, (el) => {
-      const ctx = {
-        el,
-        scope,
-        getAttr,
-        getPath,
-        setPath,
-        effect,
-        untrack,
-        disposers
-      };
-      for (const bind of binders) {
-        bind(ctx);
-      }
-    });
+    applyDirectives(rootEl, scope, disposers);
     return () => {
       for (let i = disposers.length - 1; i >= 0; i--) {
         try {
@@ -668,6 +687,49 @@ var sting = (() => {
     }
     st.applied = next;
   }
+
+  // sting/directives/x-if.js
+  var IF_STATE = /* @__PURE__ */ new WeakMap();
+  function bindXIf(ctx) {
+    const { el, scope, getAttr: getAttr2, getPath: getPath2, effect: effect2, disposers } = ctx;
+    const expr = getAttr2(el, "x-if");
+    if (!expr) return;
+    devAssert(el.tagName.toLowerCase() === "template", `[sting] x-if can only be used on <template>`);
+    devAssert(isPathSafe(expr), `[sting] x-if invalid path "${expr}"`);
+    let st = IF_STATE.get(el);
+    if (!st) {
+      st = { mounted: false, nodes: (
+        /** @type {Node[]} */
+        []
+      ) };
+      IF_STATE.set(el, st);
+    }
+    const dispose = effect2(() => {
+      const show = !!unwrap(getPath2(scope, expr));
+      if (show && !st.mounted) {
+        const frag = document.importNode(el.content, true);
+        st.nodes = Array.from(frag.childNodes);
+        el.parentNode?.insertBefore(frag, el.nextSibling);
+        for (const n of st.nodes) {
+          if (n instanceof Element) applyDirectives(n, scope, disposers);
+          else if (n instanceof DocumentFragment) {
+            n.querySelectorAll?.("*").forEach((child) => {
+              if (child instanceof Element) applyDirectives(child, scope, disposers);
+            });
+          }
+        }
+        st.mounted = true;
+        return;
+      }
+      if (!show && st.mounted) {
+        for (const n of st.nodes) n.parentNode?.removeChild(n);
+        st.nodes = [];
+        st.mounted = false;
+      }
+    });
+    disposers.push(dispose);
+  }
+  directive(bindXIf);
 
   // sting/entry/entry-global.js
   var stingInstance = makeSting();
