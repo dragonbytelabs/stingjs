@@ -33,6 +33,7 @@
           <span class="kbd">debug</span>
           <span class="kbd">model</span>
           <span class="kbd">bind</span>
+          <span class="kbd">if</span>
         </span>
       </div>
     </header>
@@ -61,13 +62,8 @@
 
               <label>
                 Name (two-way bound)
-                <input
-                  class="input"
-                  x-bind:title="user.name"
-                  x-model="user.name"
-                  placeholder="Type a hobbit name..."
-                  data-testid="profile-name-input"
-                />
+                <input class="input" x-bind:title="user.name" x-model="user.name" placeholder="Type a hobbit name..."
+                  data-testid="profile-name-input" />
               </label>
 
               <div class="row">
@@ -173,13 +169,8 @@
               </div>
 
               <div class="row">
-                <button
-                  class="btn"
-                  x-bind:class="btnClass"
-                  x-bind:title="titleText"
-                  x-on:click="boop"
-                  data-testid="class-boop"
-                >
+                <button class="btn" x-bind:class="btnClass" x-bind:title="titleText" x-on:click="boop"
+                  data-testid="class-boop">
                   Boop me
                 </button>
 
@@ -194,6 +185,65 @@
               </div>
             </div>
           </section>
+
+          <!-- X-IF LAB -->
+          <section class="card" aria-labelledby="iflab-title">
+            <header>
+              <h2 id="iflab-title">If Lab (x-if on &lt;template&gt; + hydration)</h2>
+            </header>
+
+            <div class="content" x-data="ifLab" data-testid="ifLab">
+              <p class="hint">
+                This tests <span class="kbd">x-if</span> inserting/removing DOM and ensuring inserted nodes get hydrated
+                (<span class="kbd">x-text</span>, <span class="kbd">x-on</span>, <span class="kbd">x-model</span>).
+              </p>
+
+              <div class="row">
+                <button class="btn" x-on:click="toggle">Toggle block</button>
+                <button class="btn warn" x-on:click="reset">Reset</button>
+
+                <span class="pill">
+                  open = <span class="kbd"><span x-text="openLabel"></span></span>
+                </span>
+
+                <span class="pill">
+                  clicks = <span class="kbd"><span x-text="clicks"></span></span>
+                </span>
+              </div>
+
+              <div class="sep"></div>
+
+              <!-- IMPORTANT: x-if lives on template -->
+              <template x-if="open">
+                <section class="iflab__block" data-testid="ifBlock">
+                  <div class="row">
+                    <strong class="iflab__title">
+                      Spawned block:
+                      <span class="kbd" data-testid="ifName"><span x-text="name"></span></span>
+                    </strong>
+
+                    <button class="btn good" x-on:click="inc" data-testid="ifInc">+1 click</button>
+                  </div>
+
+                  <label>
+                    Name inside the block (x-model hydration test)
+                    <input class="input" x-model="name" data-testid="ifInput" placeholder="Type a wizard name..." />
+                  </label>
+
+                  <p class="hint">
+                    This whole block is created/destroyed by <span class="kbd">x-if</span>. If the input + button work
+                    after
+                    toggling, hydration is good.
+                  </p>
+                </section>
+              </template>
+
+              <p class="hint" data-testid="ifGoneHint">
+                When <span class="kbd">open</span> is false, the spawned block should not exist in the DOM.
+              </p>
+            </div>
+          </section>
+
         </div>
       </section>
 
@@ -212,6 +262,7 @@
               <li><span class="kbd">x-on</span> binding click handlers</li>
               <li><span class="kbd">x-model</span> input/select/checkbox 2-way binding</li>
               <li><span class="kbd">x-bind</span> attribute + class binding</li>
+              <li><span class="kbd">x-if</span> template insertion + hydration</li>
               <li><span class="kbd">MutationObserver</span> cleanup when a component root is removed</li>
             </ul>
           </section>

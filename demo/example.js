@@ -164,3 +164,38 @@ sting.data("classLab", () => {
     titleText,
   }
 })
+
+/**
+ * IF LAB
+ * Exercises:
+ * - x-if on <template>
+ * - hydration of inserted nodes (x-text, x-on, x-model)
+ * - toggling inserts/removes DOM repeatedly
+ */
+sting.data("ifLab", () => {
+  const [open, setOpen] = sting.signal(false)
+  const [clicks, setClicks] = sting.signal(0)
+  const [name, setName] = sting.signal("Gandalf")
+
+  const toggle = () => setOpen(v => !v)
+  const reset = () => { setOpen(false); setClicks(0); setName("Gandalf") }
+  const inc = () => setClicks(n => n + 1)
+
+  const openLabel = sting.computed(() => (open() ? "true" : "false"))
+
+  return {
+    // state used by x-if / x-text
+    open,
+    openLabel,
+    clicks,
+
+    // x-model needs setter if it’s a primitive
+    get name() { return name() },
+    set name(v) { setName(String(v)) },
+
+    // handlers
+    toggle,
+    reset,
+    inc,
+  }
+})
