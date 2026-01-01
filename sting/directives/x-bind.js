@@ -36,10 +36,20 @@ export function bindXBind(ctx) {
 
         const dispose = effect(() => {
             const resolved = getPath(scope, expr)
-            const value = unwrap(resolved)
+            let value = unwrap(resolved)
+
+            // Treat plain functions as computed getters for binding contexts
+            if (typeof value === "function") {
+                try {
+                    value = value.length > 0 ? value(scope) : value()
+                } catch (e) {
+                    devWarn(`[sting] x-bind:${arg} "${expr}" threw while evaluating`, e)
+                    value = null
+                }
+            }
+
             applyBinding(el, arg, value)
         })
-
         disposers.push(dispose)
     }
 

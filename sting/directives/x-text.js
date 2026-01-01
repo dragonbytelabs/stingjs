@@ -1,20 +1,16 @@
 import { directive } from "../core/directives.js"
-import { devAssert, isPathSafe, unwrap } from "../core/utils.js"
+import { devAssert, devWarn, isPathSafe, unwrap } from "../core/utils.js"
 
 /**
- * Bind the `x-text` directive.
+ * x-text directive
  *
- * Keeps `el.textContent` in sync with a reactive expression.
+ * Sets the textContent of an element to the value of a scope path.
  *
  * Example:
- *   <span x-text="user.name"></span>
+ *   <div x-text="username"></div>
  *
- * Behavior:
- * - Evaluates the expression against the component scope.
- * - Re-runs automatically when any accessed signal changes.
- * - Updates textContent with the resolved value (or empty string if null/undefined).
- *
- * @param {import("../core/runtime.js").DirectiveContext} ctx
+ * Constraints:
+ * - The expression must be a safe dot-path (no eval).
  */
 export function bindXText(ctx) {
   const { el, scope, getAttr, getPath, effect, disposers } = ctx
@@ -25,8 +21,20 @@ export function bindXText(ctx) {
   devAssert(isPathSafe(expr), `[sting] x-text invalid path "${expr}"`)
 
   const dispose = effect(() => {
-    const value = unwrap(getPath(scope, expr))
-    el.textContent = value ?? ""
+    const raw = getPath(scope, expr)
+    let v = unwrap(raw)
+
+    // If value is a plain function (NOT a signal), treat it like a computed getter.
+    if (typeof v === "function") {
+      try {
+        v = v.length > 0 ? v(scope) : v()
+      } catch (e) {
+        devWarn(`[sting] x-text "${expr}" threw while evaluating`, e)
+        v = ""
+      }
+    }
+
+    el.textContent = v == null ? "" : String(v)
   })
 
   disposers.push(dispose)

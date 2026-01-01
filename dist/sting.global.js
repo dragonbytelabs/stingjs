@@ -75,11 +75,13 @@ var sting = (() => {
     if (typeof path !== "string") return false;
     return /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(path);
   }
-  function unwrap(signal2) {
-    return typeof signal2 === "function" ? signal2() : signal2;
+  function unwrap(v) {
+    if (typeof v === "function" && v[STING_SIGNAL]) return v();
+    return v;
   }
 
   // sting/core/reactivity.js
+  var STING_SIGNAL = /* @__PURE__ */ Symbol.for("sting.signal");
   var Listener = null;
   var BatchQueue = null;
   function batch(fn) {
@@ -107,6 +109,7 @@ var sting = (() => {
       }
       return value;
     }
+    read[STING_SIGNAL] = true;
     function write(next) {
       devAssert(observers instanceof Set, "[sting] signal observers must be a Set");
       const nextValue = typeof next === "function" ? next(value) : next;
@@ -145,9 +148,7 @@ var sting = (() => {
         Listener = runner;
         try {
           const ret = fn();
-          if (typeof ret === "function") {
-            cleanup = ret;
-          }
+          if (typeof ret === "function") cleanup = ret;
         } finally {
           Listener = prev;
         }
@@ -421,8 +422,17 @@ var sting = (() => {
     if (!expr) return;
     devAssert(isPathSafe(expr), `[sting] x-text invalid path "${expr}"`);
     const dispose = effect2(() => {
-      const value = unwrap(getPath2(scope, expr));
-      el.textContent = value ?? "";
+      const raw = getPath2(scope, expr);
+      let v = unwrap(raw);
+      if (typeof v === "function") {
+        try {
+          v = v.length > 0 ? v(scope) : v();
+        } catch (e) {
+          devWarn(`[sting] x-text "${expr}" threw while evaluating`, e);
+          v = "";
+        }
+      }
+      el.textContent = v == null ? "" : String(v);
     });
     disposers.push(dispose);
   }
@@ -631,7 +641,15 @@ var sting = (() => {
       devAssert(isPathSafe(expr), `[sting] x-bind:${arg} invalid path "${expr}"`);
       const dispose = effect2(() => {
         const resolved = getPath2(scope, expr);
-        const value = unwrap(resolved);
+        let value = unwrap(resolved);
+        if (typeof value === "function") {
+          try {
+            value = value.length > 0 ? value(scope) : value();
+          } catch (e) {
+            devWarn(`[sting] x-bind:${arg} "${expr}" threw while evaluating`, e);
+            value = null;
+          }
+        }
         applyBinding(el, arg, value);
       });
       disposers.push(dispose);
@@ -806,7 +824,6 @@ var sting = (() => {
     const dispose = effect2(() => {
       const resolved = getPath2(scope, listPath);
       let listVal = unwrap(resolved);
-      while (typeof listVal === "function") listVal = listVal();
       const items = normalizeIterable(listVal);
       clearForInstances(st);
       for (let i = 0; i < items.length; i++) {

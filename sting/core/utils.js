@@ -1,3 +1,5 @@
+import { STING_SIGNAL } from "./reactivity.js"
+
 /**
  * @typedef {Error & { code?: string }} StingError
  */
@@ -70,12 +72,13 @@ export function isPathSafe(path) {
 }
 
 /**
- * Unwrap a signal or return the value as-is.
+ * Unwrap a signal getter (marked with STING_SIGNAL) or return the value as-is.
  *
  * @template T
  * @param {T | (() => T)} signal
  * @returns {T}
  */
-export function unwrap(signal) {
-  return typeof signal === "function" ? signal() : signal
+export function unwrap(v) {
+  if (typeof v === "function" && v[STING_SIGNAL]) return v()
+  return v
 }
