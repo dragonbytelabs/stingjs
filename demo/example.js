@@ -217,3 +217,27 @@ sting.data("forLab", () => {
   return { items, add, pop, reset, remove, len }
 })
 
+sting.data("effectLab", () => {
+  const [count, setCount] = sting.signal(0)
+  const [runs, setRuns] = sting.signal(0)
+  const [cleans, setCleans] = sting.signal(0)
+
+  const inc = () => setCount(n => n + 1)
+
+  const track = () => {
+    // dep read (so reruns)
+    count()
+
+    // observable side effect
+    setRuns(n => n + 1)
+
+    // cleanup increments each time effect re-runs or is disposed
+    return () => setCleans(n => n + 1)
+  }
+
+  const removeSelf = () => {
+    document.querySelector('[x-data="effectLab"]')?.remove()
+  }
+
+  return { count, runs, cleans, inc, removeSelf, track }
+})

@@ -34,6 +34,7 @@
           <span class="kbd">model</span>
           <span class="kbd">bind</span>
           <span class="kbd">if</span>
+          <span class="kbd">effect</span>
         </span>
       </div>
     </header>
@@ -277,6 +278,41 @@
             </div>
           </section>
 
+          <!-- X-EFFECT LAB -->
+          <section class="card" aria-labelledby="effectlab-title">
+            <header>
+              <h2 id="effectlab-title">Effect Lab (x-effect)</h2>
+            </header>
+
+            <div class="content" x-data="effectLab" data-testid="effectLab">
+              <p class="hint">
+                Tests <span class="kbd">x-effect</span> running a side-effect function that tracks deps + supports
+                cleanup.
+              </p>
+
+              <div class="row">
+                <button class="btn good" x-on:click="inc" data-testid="effect-inc">+1</button>
+                <button class="btn warn" x-on:click="removeSelf" data-testid="effect-remove">Remove component</button>
+
+                <span class="pill">
+                  count = <span class="kbd"><span x-text="count"></span></span>
+                </span>
+
+                <span class="pill">
+                  runs = <span class="kbd"><span x-text="runs"></span></span>
+                </span>
+
+                <span class="pill">
+                  cleans = <span class="kbd"><span x-text="cleans"></span></span>
+                </span>
+              </div>
+
+              <div class="sep"></div>
+
+              <!-- Directive under test -->
+              <div x-effect="track" data-testid="effect-hook"></div>
+            </div>
+          </section>
 
         </div>
       </section>
@@ -297,6 +333,7 @@
               <li><span class="kbd">x-model</span> input/select/checkbox 2-way binding</li>
               <li><span class="kbd">x-bind</span> attribute + class binding</li>
               <li><span class="kbd">x-if</span> template insertion + hydration</li>
+              <li><span class="kbd">x-effect</span> side-effects that track deps + cleanup</li>
               <li><span class="kbd">MutationObserver</span> cleanup when a component root is removed</li>
             </ul>
           </section>
