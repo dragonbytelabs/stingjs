@@ -1,21 +1,10 @@
 import { signal } from "./reactivity.js"
 
 /**
- * Produce helper: takes a "mutate the draft" function and returns an updater
- * function suitable for setStore(updater).
- *
- * @template T
- * @param {(draft: T) => void} mutator
- * @returns {(prev: T) => T}
- *
- * @example
- * setUser(produce(d => { d.name = "Frodo" }))
+ * Produce helper: mutate draft, return next.
  */
 export function produce(mutator) {
     return (prev) => {
-        // MVP clone strategy:
-        // - structuredClone if available (handles more types)
-        // - fallback JSON clone (loses Dates/Maps/functions/etc)
         const draft =
             typeof structuredClone === "function"
                 ? structuredClone(prev)
@@ -27,70 +16,130 @@ export function produce(mutator) {
 }
 
 /**
- * Create a store for nested objects.
- * This MVP store is "signal-backed":
- * - the whole object lives in a signal
- * - the returned Proxy reads from that signal (so effects track)
- * - writes use produce to replace the object
- *
- * @template {Record<string, any>} T
- * @param {T} initial
- * @returns {[T, (next: T | ((prev: T) => T)) => void]}
- *
- * @example
- * const [user, setUser] = store({ name: "Sam" })
- * effect(() => console.log(user.name))
- * setUser(produce(d => { d.name = "Frodo" }))
+ * Deep proxy store:
+ * - reading any property tracks the whole store signal
+ * - writing any nested property triggers a root update via produce + path
  */
 export function store(initial) {
     const [get, set] = signal(initial)
 
-    /** @type {any} */
-    const proxy = new Proxy(
-        {},
-        {
-            get(_target, prop) {
-                // allow inspection and symbols
-                if (prop === Symbol.toStringTag) return "StingStore"
-                if (prop === "__raw") return get()
+    /** cache proxies per (rootObjIdentity, pathKey) */
+    const proxyCache = new WeakMap()
 
-                const cur = get()
-                return cur?.[prop]
-            },
-
-            set(_target, prop, value) {
-                set(
-                    produce((d) => {
-                        d[prop] = value
-                    })
-                )
-                return true
-            },
-
-            ownKeys() {
-                return Reflect.ownKeys(get() ?? {})
-            },
-
-            getOwnPropertyDescriptor(_target, prop) {
-                const cur = get()
-                if (cur && prop in cur) {
-                    return { enumerable: true, configurable: true }
-                }
-            },
-        }
-    )
-
-    /**
-     * Set store value.
-     * Accepts:
-     * - a new object
-     * - an updater(prev) => next (including produce(...))
-     *
-     * @param {any} next
-     */
-    function setStore(next) {
-        set(next)
+    function getAtPath(obj, path) {
+        let cur = obj
+        for (const key of path) cur = cur?.[key]
+        return cur
     }
 
-    return [proxy, setStore]
+    function setAtPath(draft, path, value) {
+        if (path.length === 0) return
+        let cur = draft
+        for (let i = 0; i < path.length - 1; i++) {
+            const k = path[i]
+            const next = cur?.[k]
+            // create containers if missing
+            if (next == null || typeof next !== "object") {
+                // choose array vs object based on next key if numeric
+                const nk = path[i + 1]
+                cur[k] = typeof nk === "number" ? [] : {}
+            }
+            cur = cur[k]
+        }
+        cur[path[path.length - 1]] = value
+    }
+
+    function delAtPath(draft, path) {
+        if (path.length === 0) return
+        let cur = draft
+        for (let i = 0; i < path.length - 1; i++) {
+            cur = cur?.[path[i]]
+            if (cur == null) return
+        }
+        delete cur[path[path.length - 1]]
+    }
+
+    function makeProxy(path) {
+        const raw = get()
+        if (raw == null || typeof raw !== "object") {
+            // if someone stores a primitive, just return it (rare)
+            return raw
+        }
+
+        // key cache by the *current root object identity* + path string
+        let perRoot = proxyCache.get(raw)
+        if (!perRoot) {
+            perRoot = new Map()
+            proxyCache.set(raw, perRoot)
+        }
+
+        const key = path.join(".")
+        if (perRoot.has(key)) return perRoot.get(key)
+
+        const p = new Proxy(
+            {},
+            {
+                get(_t, prop) {
+                    if (prop === Symbol.toStringTag) return "StingStore"
+                    if (prop === "__raw") return get()
+                    if (prop === "__path") return path.slice()
+
+                    const cur = getAtPath(get(), path)
+
+                    // allow symbols (like util.inspect) to pass through
+                    if (typeof prop === "symbol") return cur?.[prop]
+
+                    const value = cur?.[prop]
+
+                    // If it's an object/array, return a nested proxy
+                    if (value && typeof value === "object") {
+                        return makeProxy(path.concat(prop))
+                    }
+
+                    return value
+                },
+
+                set(_t, prop, value) {
+                    if (typeof prop === "symbol") return false
+
+                    set(
+                        produce((draft) => {
+                            setAtPath(draft, path.concat(prop), value)
+                        })
+                    )
+                    return true
+                },
+
+                deleteProperty(_t, prop) {
+                    if (typeof prop === "symbol") return false
+
+                    set(
+                        produce((draft) => {
+                            delAtPath(draft, path.concat(prop))
+                        })
+                    )
+                    return true
+                },
+
+                ownKeys() {
+                    const cur = getAtPath(get(), path)
+                    return Reflect.ownKeys(cur ?? {})
+                },
+
+                getOwnPropertyDescriptor(_t, prop) {
+                    const cur = getAtPath(get(), path)
+                    if (cur && prop in cur) return { enumerable: true, configurable: true }
+                },
+            }
+        )
+
+        perRoot.set(key, p)
+        return p
+    }
+
+    function setStore(next) {
+        set(next) // supports value OR updater function because signal.write handles it
+    }
+
+    return [makeProxy([]), setStore]
 }

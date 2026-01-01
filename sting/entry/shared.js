@@ -1,45 +1,88 @@
 import * as core from "../core/index.js"
 
 export function makeSting() {
-    let started = false
-    let startQueued = false
+  let stop = null
+  let startQueued = false
+  let domReadyHooked = false
 
-    function ensureStarted() {
-        if (started || startQueued) return
-        startQueued = true
+  function startNow() {
+    if (stop) return stop
+    stop = core.start()
+    return stop
+  }
 
-        queueMicrotask(() => {
-            startQueued = false
-            if (started) return
-            started = true
-            core.start()
-        })
+  function ensureStarted() {
+    if (stop || startQueued) return
+    startQueued = true
+
+    queueMicrotask(() => {
+      startQueued = false
+      if (stop) return
+
+      // If DOM isn't ready yet, defer to DOMContentLoaded (same behavior as autoStart)
+      if (document.readyState === "loading") {
+        autoStart()
+        return
+      }
+
+      startNow()
+    })
+  }
+
+  function autoStart() {
+    if (stop || startQueued) return
+
+    if (document.readyState === "loading") {
+      if (domReadyHooked) return
+      domReadyHooked = true
+      document.addEventListener(
+        "DOMContentLoaded",
+        () => {
+          if (!stop) startNow()
+        },
+        { once: true }
+      )
+      return
     }
 
-    let domReadyHooked = false
-    function autoStart() {
-        if (started || startQueued) return
-        if (document.readyState === "loading") {
-            if (domReadyHooked) return
-            domReadyHooked = true
-            document.addEventListener("DOMContentLoaded", ensureStarted, { once: true })
-        } else {
-            ensureStarted()
-        }
+    startNow()
+  }
+
+  function data(name, factory) {
+    core.devAssert(typeof name === "string" && name.length > 0, `[sting] data(name) requires a string name`)
+    core.devAssert(typeof factory === "function", `[sting] data("${name}") requires a factory function`)
+
+    core.data(name, factory)
+
+    // If runtime already started, mount any existing unmounted roots for this component.
+    if (stop) {
+      const selector = `[x-data="${cssEscape(name)}"]`
+      document.querySelectorAll(selector).forEach((el) => {
+        if (!el.__stingScope) core.mountComponent(el)
+      })
+      return
     }
 
-    function data(name, factory) {
-        core.devAssert(typeof name === "string" && name.length > 0, `[sting] data(name) requires a string name`)
-        core.devAssert(typeof factory === "function", `[sting] data("${name}") requires a factory function`)
-        core.data(name, factory)
-        ensureStarted()
-    }
+    // Otherwise, start (but only when DOM is ready)
+    ensureStarted()
+  }
 
+  return {
+    ...core,
+    data,
+    autoStart,
+    start: ensureStarted,
+    // optional: allow stopping in dev/tests
+    stop() {
+      if (!stop) return
+      stop()
+      stop = null
+    },
+  }
+}
 
-    return {
-        ...core,
-        data,
-        autoStart,
-        start: ensureStarted
-    }
+// Minimal CSS escape (good enough for your use; uses native if present)
+function cssEscape(s) {
+  if (typeof CSS !== "undefined" && CSS.escape) return CSS.escape(s)
+  return String(s).replace(/["\\]/g, "\\$&")
 }

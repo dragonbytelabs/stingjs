@@ -7,6 +7,7 @@ var __export = (target, all) => {
 // sting/core/index.js
 var core_exports = {};
 __export(core_exports, {
+  STING_SIGNAL: () => STING_SIGNAL,
   __DEV__: () => __DEV__,
   assert: () => assert,
   batch: () => batch,
@@ -19,9 +20,14 @@ __export(core_exports, {
   effect: () => effect,
   elementTag: () => elementTag,
   isPathSafe: () => isPathSafe,
+  mountComponent: () => mountComponent,
+  onCleanup: () => onCleanup,
   produce: () => produce,
+  setIntervalSafe: () => setIntervalSafe,
+  setTimeoutSafe: () => setTimeoutSafe,
   signal: () => signal,
   start: () => start,
+  startSubtree: () => startSubtree,
   store: () => store,
   untrack: () => untrack,
   unwrap: () => unwrap,
@@ -181,38 +187,97 @@ function produce(mutator) {
 }
 function store(initial) {
   const [get, set] = signal(initial);
-  const proxy = new Proxy(
-    {},
-    {
-      get(_target, prop) {
-        if (prop === Symbol.toStringTag) return "StingStore";
-        if (prop === "__raw") return get();
-        const cur = get();
-        return cur?.[prop];
-      },
-      set(_target, prop, value) {
-        set(
-          produce((d) => {
-            d[prop] = value;
-          })
-        );
-        return true;
-      },
-      ownKeys() {
-        return Reflect.ownKeys(get() ?? {});
-      },
-      getOwnPropertyDescriptor(_target, prop) {
-        const cur = get();
-        if (cur && prop in cur) {
-          return { enumerable: true, configurable: true };
+  const proxyCache = /* @__PURE__ */ new WeakMap();
+  function getAtPath(obj, path) {
+    let cur = obj;
+    for (const key of path) cur = cur?.[key];
+    return cur;
+  }
+  function setAtPath(draft, path, value) {
+    if (path.length === 0) return;
+    let cur = draft;
+    for (let i = 0; i < path.length - 1; i++) {
+      const k = path[i];
+      const next = cur?.[k];
+      if (next == null || typeof next !== "object") {
+        const nk = path[i + 1];
+        cur[k] = typeof nk === "number" ? [] : {};
+      }
+      cur = cur[k];
+    }
+    cur[path[path.length - 1]] = value;
+  }
+  function delAtPath(draft, path) {
+    if (path.length === 0) return;
+    let cur = draft;
+    for (let i = 0; i < path.length - 1; i++) {
+      cur = cur?.[path[i]];
+      if (cur == null) return;
+    }
+    delete cur[path[path.length - 1]];
+  }
+  function makeProxy(path) {
+    const raw = get();
+    if (raw == null || typeof raw !== "object") {
+      return raw;
+    }
+    let perRoot = proxyCache.get(raw);
+    if (!perRoot) {
+      perRoot = /* @__PURE__ */ new Map();
+      proxyCache.set(raw, perRoot);
+    }
+    const key = path.join(".");
+    if (perRoot.has(key)) return perRoot.get(key);
+    const p = new Proxy(
+      {},
+      {
+        get(_t, prop) {
+          if (prop === Symbol.toStringTag) return "StingStore";
+          if (prop === "__raw") return get();
+          if (prop === "__path") return path.slice();
+          const cur = getAtPath(get(), path);
+          if (typeof prop === "symbol") return cur?.[prop];
+          const value = cur?.[prop];
+          if (value && typeof value === "object") {
+            return makeProxy(path.concat(prop));
+          }
+          return value;
+        },
+        set(_t, prop, value) {
+          if (typeof prop === "symbol") return false;
+          set(
+            produce((draft) => {
+              setAtPath(draft, path.concat(prop), value);
+            })
+          );
+          return true;
+        },
+        deleteProperty(_t, prop) {
+          if (typeof prop === "symbol") return false;
+          set(
+            produce((draft) => {
+              delAtPath(draft, path.concat(prop));
+            })
+          );
+          return true;
+        },
+        ownKeys() {
+          const cur = getAtPath(get(), path);
+          return Reflect.ownKeys(cur ?? {});
+        },
+        getOwnPropertyDescriptor(_t, prop) {
+          const cur = getAtPath(get(), path);
+          if (cur && prop in cur) return { enumerable: true, configurable: true };
         }
       }
-    }
-  );
+    );
+    perRoot.set(key, p);
+    return p;
+  }
   function setStore(next) {
     set(next);
   }
-  return [proxy, setStore];
+  return [makeProxy([]), setStore];
 }
 
 // sting/core/registry.js
@@ -242,6 +307,33 @@ function use(plugin) {
   plugin({ directive });
 }
 
+// sting/core/lifecycle.js
+var CURRENT_DISPOSERS = null;
+function _withDisposers(disposers, fn) {
+  const prev = CURRENT_DISPOSERS;
+  CURRENT_DISPOSERS = disposers;
+  try {
+    return fn();
+  } finally {
+    CURRENT_DISPOSERS = prev;
+  }
+}
+function onCleanup(fn) {
+  devAssert(typeof fn === "function", "[sting] onCleanup(fn) requires a function");
+  devAssert(!!CURRENT_DISPOSERS, "[sting] onCleanup() called outside component setup");
+  CURRENT_DISPOSERS.push(fn);
+}
+function setIntervalSafe(ms, fn) {
+  const id = setInterval(fn, ms);
+  if (CURRENT_DISPOSERS) CURRENT_DISPOSERS.push(() => clearInterval(id));
+  return id;
+}
+function setTimeoutSafe(ms, fn) {
+  const id = setTimeout(fn, ms);
+  if (CURRENT_DISPOSERS) CURRENT_DISPOSERS.push(() => clearTimeout(id));
+  return id;
+}
+
 // sting/core/runtime.js
 function getAttr(el, name) {
   return el.getAttribute(name);
@@ -252,9 +344,7 @@ function walk(root, fn) {
     const node = stack.pop();
     if (!node) continue;
     fn(node);
-    for (let i = node.children.length - 1; i >= 0; i--) {
-      stack.push(node.children[i]);
-    }
+    for (let i = node.children.length - 1; i >= 0; i--) stack.push(node.children[i]);
   }
 }
 function getPath(scope, path) {
@@ -275,8 +365,7 @@ function setPath(scope, path, value) {
       return;
     }
   }
-  const last = parts[parts.length - 1];
-  cur[last] = value;
+  cur[parts[parts.length - 1]] = value;
 }
 function applyDirectives(rootEl, scope, disposers) {
   const hydrate = (subtreeRootEl, subtreeScope, subtreeDisposers) => {
@@ -297,8 +386,10 @@ function applyDirectives(rootEl, scope, disposers) {
     for (const bind of binders) bind(ctx);
   });
 }
+var MOUNTED = /* @__PURE__ */ new WeakSet();
 function mountComponent(rootEl) {
   devAssert(rootEl instanceof Element, "[sting] mountComponent expects an Element");
+  if (MOUNTED.has(rootEl)) return;
   const name = getAttr(rootEl, "x-data");
   devAssert(!!name, `[sting] mountComponent called without x-data`);
   const factory = getFactory(name);
@@ -309,11 +400,13 @@ function mountComponent(rootEl) {
     );
     return;
   }
-  const scope = factory();
-  rootEl.__stingScope = scope;
   const disposers = [];
+  const scope = _withDisposers(disposers, () => factory());
+  rootEl.__stingScope = scope;
+  MOUNTED.add(rootEl);
   applyDirectives(rootEl, scope, disposers);
   return () => {
+    MOUNTED.delete(rootEl);
     delete rootEl.__stingScope;
     for (let i = disposers.length - 1; i >= 0; i--) {
       try {
@@ -324,14 +417,22 @@ function mountComponent(rootEl) {
     }
   };
 }
+function startSubtree(rootEl) {
+  devAssert(rootEl instanceof Element, "[sting] startSubtree(rootEl) expects Element");
+  if (rootEl.matches?.("[x-data]")) mountComponent(rootEl);
+  rootEl.querySelectorAll?.("[x-data]").forEach((el) => mountComponent(el));
+}
 function start(root = document) {
   devAssert(root === document || root instanceof Element, "[sting] start(root) expects Document or Element");
-  const roots = root.querySelectorAll("[x-data]");
+  const base = root === document ? document.body : root;
+  if (!base) return () => {
+  };
+  startSubtree(base);
   const destroys = /* @__PURE__ */ new Map();
-  for (const el of roots) {
-    const destroy = mountComponent(el);
-    if (destroy) destroys.set(el, destroy);
-  }
+  base.querySelectorAll?.("[x-data]").forEach((el) => {
+    const d = mountComponent(el);
+    if (d) destroys.set(el, d);
+  });
   const mo = new MutationObserver((mutations) => {
     for (const m of mutations) {
       for (const node of m.removedNodes) {
@@ -347,9 +448,13 @@ function start(root = document) {
           }
         });
       }
+      for (const node of m.addedNodes) {
+        if (!(node instanceof Element)) continue;
+        startSubtree(node);
+      }
     }
   });
-  mo.observe(root === document ? document.body : root, { childList: true, subtree: true });
+  mo.observe(base, { childList: true, subtree: true });
   return () => {
     mo.disconnect();
     for (const destroy of destroys.values()) destroy();
@@ -359,41 +464,72 @@ function start(root = document) {
 
 // sting/entry/shared.js
 function makeSting() {
-  let started = false;
+  let stop = null;
   let startQueued = false;
+  let domReadyHooked = false;
+  function startNow() {
+    if (stop) return stop;
+    stop = start();
+    return stop;
+  }
   function ensureStarted() {
-    if (started || startQueued) return;
+    if (stop || startQueued) return;
     startQueued = true;
     queueMicrotask(() => {
       startQueued = false;
-      if (started) return;
-      started = true;
-      start();
+      if (stop) return;
+      if (document.readyState === "loading") {
+        autoStart2();
+        return;
+      }
+      startNow();
     });
   }
-  let domReadyHooked = false;
   function autoStart2() {
-    if (started || startQueued) return;
+    if (stop || startQueued) return;
     if (document.readyState === "loading") {
       if (domReadyHooked) return;
       domReadyHooked = true;
-      document.addEventListener("DOMContentLoaded", ensureStarted, { once: true });
-    } else {
-      ensureStarted();
+      document.addEventListener(
+        "DOMContentLoaded",
+        () => {
+          if (!stop) startNow();
+        },
+        { once: true }
+      );
+      return;
     }
+    startNow();
   }
   function data3(name, factory) {
     devAssert(typeof name === "string" && name.length > 0, `[sting] data(name) requires a string name`);
     devAssert(typeof factory === "function", `[sting] data("${name}") requires a factory function`);
     data(name, factory);
+    if (stop) {
+      const selector = `[x-data="${cssEscape(name)}"]`;
+      document.querySelectorAll(selector).forEach((el) => {
+        if (!el.__stingScope) mountComponent(el);
+      });
+      return;
+    }
     ensureStarted();
   }
   return {
     ...core_exports,
     data: data3,
     autoStart: autoStart2,
-    start: ensureStarted
+    start: ensureStarted,
+    // optional: allow stopping in dev/tests
+    stop() {
+      if (!stop) return;
+      stop();
+      stop = null;
+    }
   };
+}
+function cssEscape(s) {
+  if (typeof CSS !== "undefined" && CSS.escape) return CSS.escape(s);
+  return String(s).replace(/["\\]/g, "\\$&");
 }
 
 // sting/directives/x-text.js
@@ -888,6 +1024,28 @@ function clearForInstances(st) {
   }
   st.nodes.length = 0;
 }
+
+// sting/directives/x-effect.js
+function bindXEffect(ctx) {
+  const { el, scope, getAttr: getAttr2, getPath: getPath2, effect: effect3, disposers } = ctx;
+  const expr = getAttr2(el, "x-effect");
+  if (!expr) return;
+  devAssert(isPathSafe(expr), `[sting] x-effect invalid path "${expr}"`);
+  const dispose = effect3(() => {
+    const fn = getPath2(scope, expr);
+    if (typeof fn !== "function") {
+      devWarn(`[sting] x-effect "${expr}" is not a function`, el);
+      return;
+    }
+    try {
+      return fn.length > 0 ? fn(el, scope) : fn();
+    } catch (e) {
+      devWarn(`[sting] x-effect "${expr}" threw`, e);
+    }
+  });
+  disposers.push(dispose);
+}
+directive(bindXEffect);
 
 // sting/entry/entry-esm.js
 var sting = makeSting();
