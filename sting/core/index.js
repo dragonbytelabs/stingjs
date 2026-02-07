@@ -1,7 +1,7 @@
 export { signal, effect, batch, untrack, computed, STING_SIGNAL } from "./reactivity.js"
 export { store, produce } from "./store.js"
 export { data } from "./registry.js"
-export { start, startSubtree, mountComponent } from "./runtime.js"
+export { start, startSubtree, mountComponent, unmountComponent } from "./runtime.js"
 export { directive, use, binders } from "./directives.js"
 export { onCleanup, setIntervalSafe, setTimeoutSafe } from "./lifecycle.js"
 export * from "./utils.js"

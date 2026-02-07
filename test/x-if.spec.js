@@ -45,3 +45,34 @@ test("IfLab: x-if inserts/removes block and hydrates directives inside it", asyn
   await inc.click()
   await expect(root.locator('[x-text="clicks"]')).toHaveText("3")
 })
+
+test("If Leak Lab: effects inside x-if are disposed while hidden", async ({ page }) => {
+  await gotoDemo(page)
+
+  const root = page.getByTestId("ifLeakLab")
+  const toggle = root.getByTestId("ifLeak-toggle")
+  const bump = root.getByTestId("ifLeak-bump")
+  const runs = root.getByTestId("ifLeak-runs")
+
+  // initial mount runs once
+  await expect(runs).toHaveText("1")
+
+  // visible bump reruns
+  await bump.click()
+  await expect(runs).toHaveText("2")
+
+  // hide block; bump while hidden should not rerun effect
+  await toggle.click()
+  await expect(root.getByTestId("ifLeak-mounted")).toHaveCount(0)
+  await bump.click()
+  await bump.click()
+  await expect(runs).toHaveText("2")
+
+  // show again; mount should run once, then bump reruns once
+  await toggle.click()
+  await expect(root.getByTestId("ifLeak-mounted")).toHaveCount(1)
+  await expect(runs).toHaveText("3")
+
+  await bump.click()
+  await expect(runs).toHaveText("4")
+})

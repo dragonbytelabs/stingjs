@@ -1,6 +1,6 @@
 {
   "name": "stingjs",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "main": "./dist/sting.global.js",
   "module": "./dist/sting.mjs",
@@ -12,7 +12,13 @@
   },
   "scripts": {
     "build": "node build.mjs",
-    "test": "playwright test",
+    "size:check": "node scripts/check-size.mjs",
+    "test": "npm run build && playwright test --project=chromium",
+    "test:all": "npm run build && playwright test",
+    "test:chromium": "npm run build && playwright test --project=chromium",
+    "test:firefox": "npm run build && playwright test --project=firefox",
+    "test:webkit": "npm run build && playwright test --project=webkit",
+    "release:check": "npm run test && npm run size:check",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug"

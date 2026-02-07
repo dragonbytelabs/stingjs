@@ -21,6 +21,7 @@ export default sting
 export const {
   data,
   start,
+  unmountComponent,
   autoStart,
   signal,
   effect,

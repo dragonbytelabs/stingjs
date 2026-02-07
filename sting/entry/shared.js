@@ -5,9 +5,9 @@ export function makeSting() {
   let startQueued = false
   let domReadyHooked = false
 
-  function startNow() {
+  function startNow(root = document) {
     if (stop) return stop
-    stop = core.start()
+    stop = core.start(root)
     return stop
   }
 
@@ -25,7 +25,7 @@ export function makeSting() {
         return
       }
 
-      startNow()
+      start()
     })
   }
 
@@ -38,14 +38,41 @@ export function makeSting() {
       document.addEventListener(
         "DOMContentLoaded",
         () => {
-          if (!stop) startNow()
+          if (!stop) startNow(document)
         },
         { once: true }
       )
       return
     }
 
-    startNow()
+    startNow(document)
+  }
+
+  /**
+   * Start Sting runtime manually.
+   * - For `document`, this starts immediately if DOM is ready, else defers to DOMContentLoaded.
+   * - For a specific root element, this starts immediately.
+   *
+   * @param {Document | Element} root
+   * @returns {() => void} stop function
+   */
+  function start(root = document) {
+    core.devAssert(root === document || root instanceof Element, `[sting] start(root) expects Document or Element`)
+
+    if (stop) return stop
+
+    if (root !== document) return startNow(root)
+
+    if (document.readyState === "loading") {
+      autoStart()
+      return () => {
+        if (!stop) return
+        stop()
+        stop = null
+      }
+    }
+
+    return startNow(document)
   }
 
   function data(name, factory) {
@@ -71,7 +98,7 @@ export function makeSting() {
     ...core,
     data,
     autoStart,
-    start: ensureStarted,
+    start,
     // optional: allow stopping in dev/tests
     stop() {
       if (!stop) return

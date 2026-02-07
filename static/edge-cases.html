@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StingJS Edge Cases</title>
+  <script src="/dist/sting.global.js" defer></script>
+  <script src="/static/edge-cases.js" type="module" defer></script>
+</head>
+<body>
+  <main>
+    <h1>StingJS Edge Cases</h1>
+
+    <section x-data="edgeCases" data-testid="edge-root">
+      <p data-testid="edge-name"><span x-text="user.profile.name"></span></p>
+      <input x-model="user.profile.name" data-testid="edge-name-input" />
+
+      <button x-on:click="toggleTitle" data-testid="edge-toggle-title">Toggle title</button>
+      <button x-bind:title="title" data-testid="edge-target">target</button>
+
+      <button x-on:click="setLabel('hobbit', 7, true)" data-testid="edge-call-args">Set label</button>
+      <button x-on:click="setFromEvent($event)" data-testid="edge-call-event">Set from event</button>
+      <p data-testid="edge-label"><span x-text="label"></span></p>
+    </section>
+  </main>
+</body>
+</html>

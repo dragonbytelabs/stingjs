@@ -6,7 +6,7 @@ import { _withDisposers } from "./lifecycle.js"
 
 /**
  * 
- * @param {Elemebt} el 
+ * @param {Element} el 
  * @param {string} name 
  * @returns string | null
  */
@@ -18,14 +18,15 @@ function getAttr(el, name) {
  * Simple tree walker
  *
  * @param {Element} root
- * @param {(node: Element) => void} fn
+ * @param {(node: Element) => (void | boolean)} fn
  */
 function walk(root, fn) {
   const stack = [root]
   while (stack.length) {
     const node = stack.pop()
     if (!node) continue
-    fn(node)
+    const shouldDescend = fn(node)
+    if (shouldDescend === false) continue
     for (let i = node.children.length - 1; i >= 0; i--) stack.push(node.children[i])
   }
 }
@@ -79,6 +80,9 @@ export function applyDirectives(rootEl, scope, disposers) {
   }
 
   walk(rootEl, (el) => {
+    // Nested component roots own their own bindings/scope.
+    if (el !== rootEl && el.hasAttribute?.("x-data")) return false
+
     const ctx = {
       el,
       scope,
@@ -95,7 +99,8 @@ export function applyDirectives(rootEl, scope, disposers) {
 }
 
 // --- mounting ---
-const MOUNTED = new WeakSet()
+/** @type {WeakMap<Element, () => void>} */
+const MOUNTED = new WeakMap()
 
 /**
  * Mount a component at the given root element.
@@ -105,7 +110,8 @@ const MOUNTED = new WeakSet()
  */
 export function mountComponent(rootEl) {
   devAssert(rootEl instanceof Element, "[sting] mountComponent expects an Element")
-  if (MOUNTED.has(rootEl)) return
+  const existing = MOUNTED.get(rootEl)
+  if (existing) return existing
 
   const name = getAttr(rootEl, "x-data")
   devAssert(!!name, `[sting] mountComponent called without x-data`)
@@ -124,17 +130,33 @@ export function mountComponent(rootEl) {
   const scope = _withDisposers(disposers, () => factory())
 
   rootEl.__stingScope = scope
-  MOUNTED.add(rootEl)
 
   applyDirectives(rootEl, scope, disposers)
 
-  return () => {
+  const destroy = () => {
     MOUNTED.delete(rootEl)
     delete rootEl.__stingScope
     for (let i = disposers.length - 1; i >= 0; i--) {
       try { disposers[i]() } catch (e) { console.error("[sting] error during disposer", e) }
     }
   }
+
+  MOUNTED.set(rootEl, destroy)
+  return destroy
+}
+
+/**
+ * Unmount a component if mounted.
+ *
+ * @param {Element} rootEl
+ * @returns {boolean} true when a mounted component was disposed
+ */
+export function unmountComponent(rootEl) {
+  devAssert(rootEl instanceof Element, "[sting] unmountComponent expects an Element")
+  const destroy = MOUNTED.get(rootEl)
+  if (!destroy) return false
+  destroy()
+  return true
 }
 
 /**
@@ -164,29 +186,12 @@ export function start(root = document) {
   // initial mount
   startSubtree(base)
 
-  // unmount tracking
-  const destroys = new Map()
-  base.querySelectorAll?.("[x-data]").forEach((el) => {
-    const d = mountComponent(el)
-    if (d) destroys.set(el, d)
-  })
-
   const mo = new MutationObserver((mutations) => {
     for (const m of mutations) {
       for (const node of m.removedNodes) {
         if (!(node instanceof Element)) continue
-
-        if (destroys.has(node)) {
-          destroys.get(node)()
-          destroys.delete(node)
-        }
-
-        node.querySelectorAll?.("[x-data]").forEach((el) => {
-          if (destroys.has(el)) {
-            destroys.get(el)()
-            destroys.delete(el)
-          }
-        })
+        if (node.matches?.("[x-data]")) unmountComponent(node)
+        node.querySelectorAll?.("[x-data]").forEach((el) => unmountComponent(el))
       }
 
       // if nodes are added, mount subtree
@@ -201,7 +206,7 @@ export function start(root = document) {
 
   return () => {
     mo.disconnect()
-    for (const destroy of destroys.values()) destroy()
-    destroys.clear()
+    if (base.matches?.("[x-data]")) unmountComponent(base)
+    base.querySelectorAll?.("[x-data]").forEach((el) => unmountComponent(el))
   }
 }

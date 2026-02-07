@@ -314,6 +314,35 @@
             </div>
           </section>
 
+          <!-- X-IF LEAK REGRESSION LAB -->
+          <section class="card" aria-labelledby="ifleak-title">
+            <header>
+              <h2 id="ifleak-title">If Leak Lab (x-if teardown regression)</h2>
+            </header>
+
+            <div class="content" x-data="ifLeakLab" data-testid="ifLeakLab">
+              <p class="hint">
+                When the block is hidden, <span class="kbd">x-effect</span> inside the template must be disposed.
+                Bumping while hidden must not increase runs.
+              </p>
+
+              <div class="row">
+                <button class="btn" x-on:click="toggle" data-testid="ifLeak-toggle">Toggle block</button>
+                <button class="btn good" x-on:click="bump" data-testid="ifLeak-bump">Bump tick</button>
+
+                <span class="pill">
+                  runs = <span class="kbd"><span x-text="runs" data-testid="ifLeak-runs"></span></span>
+                </span>
+              </div>
+
+              <template x-if="open">
+                <div class="debug" x-effect="track" data-testid="ifLeak-mounted">
+                  mounted effect
+                </div>
+              </template>
+            </div>
+          </section>
+
         </div>
       </section>
 

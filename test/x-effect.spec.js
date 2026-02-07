@@ -33,4 +33,36 @@ test("EffectLab: x-effect runs on mount, reruns on dep change, and cleans up on 
   // removing component should dispose effect -> one more cleanup
   await remove.click()
   await expect(page.getByTestId("effectLab")).toHaveCount(0)
+  await expect.poll(async () => {
+    return await page.evaluate(() => window.__effectLabCleanupEvents || 0)
+  }).toBe(3)
+})
+
+test("Runtime: dynamically added x-data roots are tracked and cleaned on removal", async ({ page }) => {
+  await gotoDemo(page)
+
+  await page.evaluate(() => {
+    window.__effectLabCleanupEvents = 0
+
+    const host = document.createElement("div")
+    host.setAttribute("x-data", "effectLab")
+    host.setAttribute("data-testid", "dynamic-effect-lab")
+    host.innerHTML = '<div x-effect="track"></div>'
+    document.body.appendChild(host)
+  })
+
+  await expect.poll(async () => {
+    return await page.evaluate(() => {
+      const el = document.querySelector('[data-testid="dynamic-effect-lab"]')
+      return !!el?.__stingScope
+    })
+  }).toBe(true)
+
+  await page.evaluate(() => {
+    document.querySelector('[data-testid="dynamic-effect-lab"]')?.remove()
+  })
+
+  await expect.poll(async () => {
+    return await page.evaluate(() => window.__effectLabCleanupEvents || 0)
+  }).toBe(1)
 })

@@ -29,6 +29,7 @@ __export(core_exports, {
   start: () => start,
   startSubtree: () => startSubtree,
   store: () => store,
+  unmountComponent: () => unmountComponent,
   untrack: () => untrack,
   unwrap: () => unwrap,
   use: () => use
@@ -343,7 +344,8 @@ function walk(root, fn) {
   while (stack.length) {
     const node = stack.pop();
     if (!node) continue;
-    fn(node);
+    const shouldDescend = fn(node);
+    if (shouldDescend === false) continue;
     for (let i = node.children.length - 1; i >= 0; i--) stack.push(node.children[i]);
   }
 }
@@ -372,6 +374,7 @@ function applyDirectives(rootEl, scope, disposers) {
     applyDirectives(subtreeRootEl, subtreeScope, subtreeDisposers);
   };
   walk(rootEl, (el) => {
+    if (el !== rootEl && el.hasAttribute?.("x-data")) return false;
     const ctx = {
       el,
       scope,
@@ -386,10 +389,11 @@ function applyDirectives(rootEl, scope, disposers) {
     for (const bind of binders) bind(ctx);
   });
 }
-var MOUNTED = /* @__PURE__ */ new WeakSet();
+var MOUNTED = /* @__PURE__ */ new WeakMap();
 function mountComponent(rootEl) {
   devAssert(rootEl instanceof Element, "[sting] mountComponent expects an Element");
-  if (MOUNTED.has(rootEl)) return;
+  const existing = MOUNTED.get(rootEl);
+  if (existing) return existing;
   const name = getAttr(rootEl, "x-data");
   devAssert(!!name, `[sting] mountComponent called without x-data`);
   const factory = getFactory(name);
@@ -403,9 +407,8 @@ function mountComponent(rootEl) {
   const disposers = [];
   const scope = _withDisposers(disposers, () => factory());
   rootEl.__stingScope = scope;
-  MOUNTED.add(rootEl);
   applyDirectives(rootEl, scope, disposers);
-  return () => {
+  const destroy = () => {
     MOUNTED.delete(rootEl);
     delete rootEl.__stingScope;
     for (let i = disposers.length - 1; i >= 0; i--) {
@@ -416,6 +419,15 @@ function mountComponent(rootEl) {
       }
     }
   };
+  MOUNTED.set(rootEl, destroy);
+  return destroy;
+}
+function unmountComponent(rootEl) {
+  devAssert(rootEl instanceof Element, "[sting] unmountComponent expects an Element");
+  const destroy = MOUNTED.get(rootEl);
+  if (!destroy) return false;
+  destroy();
+  return true;
 }
 function startSubtree(rootEl) {
   devAssert(rootEl instanceof Element, "[sting] startSubtree(rootEl) expects Element");
@@ -428,25 +440,12 @@ function start(root = document) {
   if (!base) return () => {
   };
   startSubtree(base);
-  const destroys = /* @__PURE__ */ new Map();
-  base.querySelectorAll?.("[x-data]").forEach((el) => {
-    const d = mountComponent(el);
-    if (d) destroys.set(el, d);
-  });
   const mo = new MutationObserver((mutations) => {
     for (const m of mutations) {
       for (const node of m.removedNodes) {
         if (!(node instanceof Element)) continue;
-        if (destroys.has(node)) {
-          destroys.get(node)();
-          destroys.delete(node);
-        }
-        node.querySelectorAll?.("[x-data]").forEach((el) => {
-          if (destroys.has(el)) {
-            destroys.get(el)();
-            destroys.delete(el);
-          }
-        });
+        if (node.matches?.("[x-data]")) unmountComponent(node);
+        node.querySelectorAll?.("[x-data]").forEach((el) => unmountComponent(el));
       }
       for (const node of m.addedNodes) {
         if (!(node instanceof Element)) continue;
@@ -457,8 +456,8 @@ function start(root = document) {
   mo.observe(base, { childList: true, subtree: true });
   return () => {
     mo.disconnect();
-    for (const destroy of destroys.values()) destroy();
-    destroys.clear();
+    if (base.matches?.("[x-data]")) unmountComponent(base);
+    base.querySelectorAll?.("[x-data]").forEach((el) => unmountComponent(el));
   };
 }
 
@@ -467,9 +466,9 @@ function makeSting() {
   let stop = null;
   let startQueued = false;
   let domReadyHooked = false;
-  function startNow() {
+  function startNow(root = document) {
     if (stop) return stop;
-    stop = start();
+    stop = start(root);
     return stop;
   }
   function ensureStarted() {
@@ -482,7 +481,7 @@ function makeSting() {
         autoStart2();
         return;
       }
-      startNow();
+      start3();
     });
   }
   function autoStart2() {
@@ -493,13 +492,27 @@ function makeSting() {
       document.addEventListener(
         "DOMContentLoaded",
         () => {
-          if (!stop) startNow();
+          if (!stop) startNow(document);
         },
         { once: true }
       );
       return;
     }
-    startNow();
+    startNow(document);
+  }
+  function start3(root = document) {
+    devAssert(root === document || root instanceof Element, `[sting] start(root) expects Document or Element`);
+    if (stop) return stop;
+    if (root !== document) return startNow(root);
+    if (document.readyState === "loading") {
+      autoStart2();
+      return () => {
+        if (!stop) return;
+        stop();
+        stop = null;
+      };
+    }
+    return startNow(document);
   }
   function data3(name, factory) {
     devAssert(typeof name === "string" && name.length > 0, `[sting] data(name) requires a string name`);
@@ -518,7 +531,7 @@ function makeSting() {
     ...core_exports,
     data: data3,
     autoStart: autoStart2,
-    start: ensureStarted,
+    start: start3,
     // optional: allow stopping in dev/tests
     stop() {
       if (!stop) return;
@@ -588,45 +601,43 @@ function bindXOn(ctx) {
     const parsed = parseOnExpr(expr);
     devAssert(!!parsed, `[sting] x-on:${eventName} invalid expression "${expr}"`);
     const handler = (ev) => {
-      const { fnPath, arg } = parsed;
+      const { fnPath, args } = parsed;
       devAssert(isPathSafe(fnPath), `[sting] x-on:${eventName} invalid fn path "${fnPath}"`);
-      const scopeNow = getClosestScope(el) || scope;
+      const scopeNow = scope;
       const maybeFn = getPath2(scopeNow, fnPath);
       devAssert(typeof maybeFn === "function", `[sting] x-on:${eventName} "${fnPath}" is not a function`);
-      if (arg == null) {
-        maybeFn(ev);
-        return;
+      let ret;
+      if (args == null) {
+        ret = maybeFn(ev);
+      } else {
+        const argValues = args.map((arg) => resolveArg(scopeNow, getPath2, arg, ev));
+        ret = maybeFn(...argValues, ev);
       }
-      const argVal = resolveArg(scopeNow, getPath2, arg);
-      maybeFn(argVal, ev);
+      if (typeof ret === "function") ret(ev);
     };
     el.addEventListener(eventName, handler);
     disposers.push(() => el.removeEventListener(eventName, handler));
   }
 }
 directive(bindXOn);
-function getClosestScope(el) {
-  let cur = el;
-  while (cur && cur !== document.body) {
-    if (cur.hasAttribute?.("x-data") && cur.__stingScope) return cur.__stingScope;
-    cur = cur.parentNode;
-  }
-  return null;
-}
 function parseOnExpr(expr) {
   const s = expr.trim();
-  const m = s.match(/^([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*\(\s*(.*?)\s*\)\s*$/);
+  const m = s.match(/^([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*\((.*)\)\s*$/);
   if (m) {
     const fnPath = m[1];
-    const rawArg = m[2];
-    const arg = rawArg === "" ? null : rawArg;
-    return { fnPath, arg };
+    const rawArgs = m[2].trim();
+    if (!rawArgs) return { fnPath, args: [] };
+    const args = splitArgs(rawArgs);
+    if (!args) return null;
+    if (args.some((a) => a.length === 0)) return null;
+    return { fnPath, args };
   }
-  if (isPathSafe(s)) return { fnPath: s, arg: null };
+  if (isPathSafe(s)) return { fnPath: s, args: null };
   return null;
 }
-function resolveArg(scope, getPath2, argExpr) {
+function resolveArg(scope, getPath2, argExpr, ev) {
   const s = String(argExpr).trim();
+  if (s === "$event") return ev;
   if (s.startsWith('"') && s.endsWith('"') || s.startsWith("'") && s.endsWith("'")) {
     return s.slice(1, -1);
   }
@@ -638,6 +649,46 @@ function resolveArg(scope, getPath2, argExpr) {
   devAssert(isPathSafe(s), `[sting] x-on arg must be a safe path or literal, got "${s}"`);
   const v = getPath2(scope, s);
   return unwrap(v);
+}
+function splitArgs(source) {
+  const out = [];
+  let cur = "";
+  let quote = null;
+  let depth = 0;
+  for (let i = 0; i < source.length; i++) {
+    const ch = source[i];
+    const prev = i > 0 ? source[i - 1] : "";
+    if (quote) {
+      cur += ch;
+      if (ch === quote && prev !== "\\") quote = null;
+      continue;
+    }
+    if (ch === "'" || ch === '"') {
+      quote = ch;
+      cur += ch;
+      continue;
+    }
+    if (ch === "(") {
+      depth++;
+      cur += ch;
+      continue;
+    }
+    if (ch === ")") {
+      if (depth === 0) return null;
+      depth--;
+      cur += ch;
+      continue;
+    }
+    if (ch === "," && depth === 0) {
+      out.push(cur.trim());
+      cur = "";
+      continue;
+    }
+    cur += ch;
+  }
+  if (quote || depth !== 0) return null;
+  out.push(cur.trim());
+  return out;
 }
 
 // sting/directives/x-debug.js
@@ -868,10 +919,17 @@ function bindXIf(ctx) {
   devAssert(isPathSafe(expr), `[sting] x-if invalid path "${expr}"`);
   let st = IF_STATE.get(el);
   if (!st) {
-    st = { mounted: false, nodes: (
-      /** @type {Node[]} */
-      []
-    ) };
+    st = {
+      mounted: false,
+      nodes: (
+        /** @type {Node[]} */
+        []
+      ),
+      instanceDisposers: (
+        /** @type {Array<() => void>} */
+        []
+      )
+    };
     IF_STATE.set(el, st);
   }
   const dispose = effect3(() => {
@@ -880,11 +938,12 @@ function bindXIf(ctx) {
       const frag = document.importNode(el.content, true);
       st.nodes = Array.from(frag.childNodes);
       el.parentNode?.insertBefore(frag, el.nextSibling);
+      st.instanceDisposers = [];
       for (const n of st.nodes) {
-        if (n instanceof Element) applyDirectives(n, scope, disposers);
+        if (n instanceof Element) applyDirectives(n, scope, st.instanceDisposers);
         else if (n instanceof DocumentFragment) {
           n.querySelectorAll?.("*").forEach((child) => {
-            if (child instanceof Element) applyDirectives(child, scope, disposers);
+            if (child instanceof Element) applyDirectives(child, scope, st.instanceDisposers);
           });
         }
       }
@@ -892,14 +951,31 @@ function bindXIf(ctx) {
       return;
     }
     if (!show && st.mounted) {
-      for (const n of st.nodes) n.parentNode?.removeChild(n);
-      st.nodes = [];
-      st.mounted = false;
+      unmountIfInstance(st);
     }
   });
-  disposers.push(dispose);
+  disposers.push(() => {
+    dispose();
+    unmountIfInstance(st);
+    IF_STATE.delete(el);
+  });
 }
 directive(bindXIf);
+function unmountIfInstance(st) {
+  if (!st.mounted) return;
+  for (let i = st.instanceDisposers.length - 1; i >= 0; i--) {
+    try {
+      st.instanceDisposers[i]();
+    } catch {
+    }
+  }
+  st.instanceDisposers = [];
+  for (const n of st.nodes) {
+    n.parentNode?.removeChild(n);
+  }
+  st.nodes = [];
+  st.mounted = false;
+}
 
 // sting/directives/x-for.js
 var FOR_STATE = /* @__PURE__ */ new WeakMap();
@@ -1054,6 +1130,7 @@ var entry_esm_default = sting;
 var {
   data: data2,
   start: start2,
+  unmountComponent: unmountComponent2,
   autoStart,
   signal: signal2,
   effect: effect2,
@@ -1079,6 +1156,7 @@ export {
   signal2 as signal,
   start2 as start,
   store2 as store,
+  unmountComponent2 as unmountComponent,
   untrack2 as untrack,
   use2 as use
 };

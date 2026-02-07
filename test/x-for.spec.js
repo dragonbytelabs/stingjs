@@ -19,3 +19,16 @@ test("ForLab: x-for renders items and updates when mutated", async ({ page }) =>
   await pop.click()
   await expect(root.getByTestId("for-item")).toHaveCount(3)
 })
+
+test("ForLab: x-on remove(i) works for per-row handlers", async ({ page }) => {
+  await gotoDemo(page)
+
+  const root = page.getByTestId("forLab")
+  const rows = root.getByTestId("for-item")
+
+  await expect(rows).toHaveCount(3)
+
+  await rows.nth(1).getByTestId("for-remove").click()
+  await expect(rows).toHaveCount(2)
+  await expect(root.getByTestId("for-list")).not.toContainText("Aragorn")
+})

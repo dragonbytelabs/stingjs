@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'" />
+  <title>StingJS CSP Smoke</title>
+  <script src="/dist/sting.global.js" defer></script>
+  <script src="/static/csp-smoke.js" type="module" defer></script>
+</head>
+<body>
+  <main>
+    <h1>StingJS CSP Smoke</h1>
+
+    <section x-data="cspCounter" data-testid="csp-root">
+      <button x-on:click="inc" data-testid="csp-inc">+1</button>
+      <p>count: <span x-text="count" data-testid="csp-count"></span></p>
+    </section>
+  </main>
+</body>
+</html>

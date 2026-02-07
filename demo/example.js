@@ -207,8 +207,8 @@ sting.data("forLab", () => {
   const pop = () => setItems(xs => xs.slice(0, -1))
   const reset = () => setItems(["Gandalf", "Aragorn", "Legolas"])
 
-  // This is the one “gap”: without eval, remove(i) needs to be a function on scope.
-  // We'll expose remove(index) that returns a handler.
+  // CSP-friendly handler shape:
+  // x-on:click="remove(i)" invokes remove(i), then invokes the returned handler.
   const remove = (i) => () => setItems(xs => xs.filter((_, idx) => idx !== i))
 
 
@@ -232,7 +232,10 @@ sting.data("effectLab", () => {
     setRuns(n => n + 1)
 
     // cleanup increments each time effect re-runs or is disposed
-    return () => setCleans(n => n + 1)
+    return () => {
+      setCleans(n => n + 1)
+      window.__effectLabCleanupEvents = (window.__effectLabCleanupEvents || 0) + 1
+    }
   }
 
   const removeSelf = () => {
@@ -240,4 +243,20 @@ sting.data("effectLab", () => {
   }
 
   return { count, runs, cleans, inc, removeSelf, track }
+})
+
+sting.data("ifLeakLab", () => {
+  const [open, setOpen] = sting.signal(true)
+  const [tick, setTick] = sting.signal(0)
+  const [runs, setRuns] = sting.signal(0)
+
+  const toggle = () => setOpen(v => !v)
+  const bump = () => setTick(n => n + 1)
+
+  const track = () => {
+    tick()
+    setRuns(n => n + 1)
+  }
+
+  return { open, runs, toggle, bump, track }
 })
