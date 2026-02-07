@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sting App</title>
+  </head>
+  <body>
+    <main class="app" x-data="counter">
+      <h1>StingJS Starter</h1>
+      <p class="hint">Counter demo powered by StingJS directives.</p>
+
+      <div class="row">
+        <button x-on:click="dec">Decrease</button>
+        <span class="count" x-text="count"></span>
+        <button x-on:click="inc">Increase</button>
+      </div>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

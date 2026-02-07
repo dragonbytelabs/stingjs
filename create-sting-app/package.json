@@ -1,0 +1,30 @@
+{
+  "name": "create-sting-app",
+  "version": "1.0.0",
+  "description": "Scaffold a StingJS app",
+  "type": "module",
+  "bin": {
+    "create-sting-app": "./bin/create-sting-app.js"
+  },
+  "exports": {
+    "./cli": "./lib/run.js"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "template",
+    "README.md"
+  ],
+  "keywords": [
+    "stingjs",
+    "create-sting",
+    "create-sting-app",
+    "scaffold",
+    "vite",
+    "typescript"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

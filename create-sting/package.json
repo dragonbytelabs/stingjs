@@ -1,0 +1,25 @@
+{
+  "name": "create-sting",
+  "version": "1.0.0",
+  "description": "Create a StingJS app via npm create sting",
+  "type": "module",
+  "bin": {
+    "create-sting": "./bin/create-sting.js"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "keywords": [
+    "stingjs",
+    "create-sting",
+    "scaffold"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "create-sting-app": "^1.0.0"
+  }
+}

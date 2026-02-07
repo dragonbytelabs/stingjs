@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sting App</title>
+  </head>
+  <body>
+    <main class="app" x-data="counter">
+      <h1>StingJS Starter</h1>
+      <p class="hint">Alpine-style directives + Solid-style reactivity.</p>
+
+      <div class="row">
+        <button x-on:click="dec">-1</button>
+        <span class="count" x-text="count"></span>
+        <button x-on:click="inc">+1</button>
+      </div>
+
+      <p>
+        Mood: <strong x-text="mood"></strong>
+      </p>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

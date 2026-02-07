@@ -1,0 +1,63 @@
+:root {
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  line-height: 1.4;
+  color: #0f172a;
+  background: radial-gradient(circle at top, #dbeafe 0%, #eff6ff 45%, #ffffff 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+
+.app {
+  width: min(560px, calc(100vw - 32px));
+  background: #ffffff;
+  border: 1px solid #bfdbfe;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 16px 36px rgba(30, 64, 175, 0.16);
+}
+
+h1 {
+  margin: 0 0 8px;
+}
+
+.hint {
+  margin: 0 0 20px;
+  color: #334155;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+button {
+  border: 1px solid #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #dbeafe;
+}
+
+.count {
+  min-width: 52px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+}

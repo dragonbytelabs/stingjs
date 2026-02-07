@@ -12,6 +12,9 @@
   },
   "scripts": {
     "build": "node build.mjs",
+    "create:smoke": "node scripts/test-create-scaffold.mjs",
+    "create:publish": "node scripts/release-create-packages.mjs",
+    "create:publish:dry-run": "node scripts/release-create-packages.mjs --dry-run",
     "size:check": "node scripts/check-size.mjs",
     "test": "npm run build && playwright test --project=chromium",
     "test:all": "npm run build && playwright test",

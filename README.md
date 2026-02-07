@@ -15,6 +15,28 @@ A tiny, CSP-friendly reactive framework with:
 npm i stingjs
 ```
 
+## Scaffold A New App
+
+```bash
+npm create sting@latest
+```
+
+With a target directory:
+
+```bash
+npm create sting@latest my-sting-app
+```
+
+Pick a template non-interactively:
+
+```bash
+npm create sting@latest my-sting-app -- --template typescript --yes
+```
+
+Template values: `javascript` (`js`) and `typescript` (`ts`).
+
+This command resolves to npm package `create-sting`, which delegates to `create-sting-app`.
+
 ## Quickstart (ESM)
 
 ```html
@@ -102,6 +124,9 @@ Additional commands:
 - `npm run test:all` (chromium + firefox + webkit)
 - `npm run size:check` (bundle size budget)
 - `npm run release:check` (build + tests + size budget)
+- `npm run create:smoke` (scaffold smoke checks for JS + TS starter templates)
+- `npm run create:publish:dry-run` (dry-run publish in order: `create-sting-app` then `create-sting`)
+- `npm run create:publish -- --public` (publish both packages in that order with `--access public`)
 
 ## Release Notes
 
