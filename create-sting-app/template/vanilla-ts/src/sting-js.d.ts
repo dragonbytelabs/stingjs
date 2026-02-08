@@ -1,4 +1,4 @@
-declare module "stingjs" {
+declare module "sting-js" {
   interface StingApi {
     data(name: string, setup: () => Record<string, unknown>): void
     signal<T>(initialValue: T): [() => T, (nextValue: T | ((prev: T) => T)) => void]

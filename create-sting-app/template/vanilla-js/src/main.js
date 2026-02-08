@@ -1,4 +1,4 @@
-import sting from "stingjs"
+import sting from "sting-js"
 import "./style.css"
 
 sting.data("counter", () => {

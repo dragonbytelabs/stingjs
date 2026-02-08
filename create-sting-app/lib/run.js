@@ -209,7 +209,7 @@ function buildPackageJson({ packageName, template }) {
       preview: "vite preview",
     },
     dependencies: {
-      stingjs: "^1.0.0",
+      "sting-js": "^1.0.0",
     },
     devDependencies: {
       vite: "^7.3.1",

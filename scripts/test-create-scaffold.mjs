@@ -20,7 +20,7 @@ try {
     expectedMain: "src/main.js",
     expectedPackageChecks: [
       ["devDependencies.vite", "^7.3.1"],
-      ["dependencies.stingjs", "^1.0.0"],
+      ["dependencies.sting-js", "^1.0.0"],
       ["scripts.dev", "vite"],
     ],
   })
@@ -30,11 +30,11 @@ try {
     outDir: path.join(tempRoot, "ts-app"),
     template: "typescript",
     expectedMain: "src/main.ts",
-    expectedFiles: ["tsconfig.json", "src/stingjs.d.ts"],
+    expectedFiles: ["tsconfig.json", "src/sting-js.d.ts"],
     expectedPackageChecks: [
       ["devDependencies.typescript", "^5.9.3"],
       ["scripts.typecheck", "tsc --noEmit"],
-      ["dependencies.stingjs", "^1.0.0"],
+      ["dependencies.sting-js", "^1.0.0"],
     ],
   })
 
