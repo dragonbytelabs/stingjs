@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StingJS Docs | Developer Guide</title>
+    <meta
+      name="description"
+      content="StingJS documentation: installation, quickstart, directives, API, CSP compatibility, and scaffold usage."
+    />
+    <link rel="stylesheet" href="../assets/styles.css" />
+    <script src="../assets/site.js" defer></script>
+  </head>
+  <body>
+    <header class="top-nav">
+      <div class="top-nav-inner">
+        <a class="brand-link" href="../index.html" aria-label="StingJS home">
+          <span class="brand-badge" aria-hidden="true"></span>
+          <span class="brand-wordmark">StingJS</span>
+        </a>
+
+        <button class="mobile-menu-button" data-nav-toggle aria-expanded="false" aria-controls="docs-nav">
+          Menu
+        </button>
+
+        <nav class="nav-links" id="docs-nav" data-nav-menu>
+          <a href="../index.html">Home</a>
+          <a class="active" href="./index.html">Docs</a>
+          <a href="https://www.npmjs.com/package/stingjs" target="_blank" rel="noreferrer">npm</a>
+          <a href="https://github.com/dragonbytelabs/stingjs" target="_blank" rel="noreferrer">GitHub</a>
+        </nav>
+
+        <div class="nav-cta">
+          <a class="button button-secondary" href="../index.html">Back to Home</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-shell docs-shell">
+      <aside class="docs-sidebar">
+        <h2>On This Page</h2>
+        <nav>
+          <a href="#quickstart" data-doc-link>Quickstart</a>
+          <a href="#scaffold" data-doc-link>Scaffold CLI</a>
+          <a href="#directives" data-doc-link>Directives</a>
+          <a href="#api" data-doc-link>Core API</a>
+          <a href="#lifecycle" data-doc-link>Lifecycle + Store</a>
+          <a href="#csp" data-doc-link>CSP Model</a>
+          <a href="#compatibility" data-doc-link>Compatibility</a>
+          <a href="#workflow" data-doc-link>Dev Workflow</a>
+        </nav>
+      </aside>
+
+      <div class="docs-main">
+        <section class="docs-hero reveal">
+          <p class="eyebrow">Developer Documentation</p>
+          <h1>Build with directives. Scale with signals.</h1>
+          <p>
+            StingJS combines path-safe declarative DOM directives with fine-grained reactivity primitives. This page
+            is the practical reference for shipping apps with the current repository contract.
+          </p>
+        </section>
+
+        <section class="docs-section" id="quickstart">
+          <h2>Quickstart</h2>
+          <p>Install the runtime and register a component factory used by <span class="docs-inline-code">x-data</span>.</p>
+          <pre><code>npm i stingjs</code></pre>
+          <pre><code>&lt;div x-data="counter"&gt;
+  &lt;button x-on:click="inc"&gt;+1&lt;/button&gt;
+  &lt;span x-text="count"&gt;&lt;/span&gt;
+&lt;/div&gt;
+
+&lt;script type="module"&gt;
+  import sting from "stingjs"
+
+  sting.data("counter", () =&gt; {
+    const [count, setCount] = sting.signal(0)
+    const inc = () =&gt; setCount((n) =&gt; n + 1)
+    return { count, inc }
+  })
+&lt;/script&gt;</code></pre>
+          <div class="docs-note">
+            ESM builds auto-start on DOM ready. Global usage is available via <span class="docs-inline-code">dist/sting.global.js</span>
+            as <span class="docs-inline-code">window.sting</span>.
+          </div>
+        </section>
+
+        <section class="docs-section" id="scaffold">
+          <h2>Scaffold CLI</h2>
+          <p>
+            The create flow resolves through package <span class="docs-inline-code">create-sting</span> and delegates to
+            <span class="docs-inline-code">create-sting-app</span>.
+          </p>
+          <pre><code>npm create sting@latest
+npm create sting@latest my-app -- --template typescript --yes</code></pre>
+          <h3>Template options</h3>
+          <ul>
+            <li><span class="docs-inline-code">javascript</span> / <span class="docs-inline-code">js</span></li>
+            <li><span class="docs-inline-code">typescript</span> / <span class="docs-inline-code">ts</span></li>
+          </ul>
+        </section>
+
+        <section class="docs-section" id="directives">
+          <h2>Built-in Directives</h2>
+          <p>
+            StingJS uses path-safe expressions by default. Most directives accept identifier or dot-path values
+            (example: <span class="docs-inline-code">user.profile.name</span>).
+          </p>
+
+          <h3><span class="docs-inline-code">x-text</span></h3>
+          <p>Sets <span class="docs-inline-code">textContent</span> from scope path/signal, with nullish values rendered as empty text.</p>
+
+          <h3><span class="docs-inline-code">x-show</span></h3>
+          <p>Toggles visibility by applying <span class="docs-inline-code">display: none</span> when falsy.</p>
+
+          <h3><span class="docs-inline-code">x-on:event</span></h3>
+          <p>
+            Supports path handlers, literal args, <span class="docs-inline-code">$event</span>, and curried handler patterns such as
+            <span class="docs-inline-code">remove(i)</span>.
+          </p>
+
+          <h3><span class="docs-inline-code">x-model</span></h3>
+          <p>Two-way binding for input, textarea, select, checkbox, and radio controls.</p>
+
+          <h3><span class="docs-inline-code">x-bind:attr</span></h3>
+          <p>Reactive attribute/property binding, including class object syntax and style object syntax.</p>
+
+          <h3><span class="docs-inline-code">x-if</span> and <span class="docs-inline-code">x-for</span> (template only)</h3>
+          <p>
+            <span class="docs-inline-code">x-if</span> conditionally mounts template content. <span class="docs-inline-code">x-for</span>
+            renders iterable lists with full re-render semantics on updates.
+          </p>
+
+          <h3><span class="docs-inline-code">x-effect</span> and <span class="docs-inline-code">x-debug</span></h3>
+          <p>
+            <span class="docs-inline-code">x-effect</span> runs reactive side effects with cleanup support.
+            <span class="docs-inline-code">x-debug</span> provides live signal debug output for development.
+          </p>
+        </section>
+
+        <section class="docs-section" id="api">
+          <h2>Core API</h2>
+          <p>Main exports available from <span class="docs-inline-code">stingjs</span>:</p>
+          <ul>
+            <li><span class="docs-inline-code">data</span>, <span class="docs-inline-code">start</span>, <span class="docs-inline-code">autoStart</span>, <span class="docs-inline-code">unmountComponent</span></li>
+            <li><span class="docs-inline-code">signal</span>, <span class="docs-inline-code">effect</span>, <span class="docs-inline-code">computed</span>, <span class="docs-inline-code">batch</span>, <span class="docs-inline-code">untrack</span></li>
+            <li><span class="docs-inline-code">directive</span>, <span class="docs-inline-code">use</span>, <span class="docs-inline-code">binders</span></li>
+            <li><span class="docs-inline-code">store</span>, <span class="docs-inline-code">produce</span></li>
+          </ul>
+          <pre><code>const [count, setCount] = sting.signal(0)
+
+const dispose = sting.effect(() =&gt; {
+  console.log(count())
+})
+
+setCount((n) =&gt; n + 1)
+dispose()</code></pre>
+        </section>
+
+        <section class="docs-section" id="lifecycle">
+          <h2>Lifecycle + Store Helpers</h2>
+          <ul>
+            <li><span class="docs-inline-code">onCleanup(fn)</span>: register component teardown handlers during setup</li>
+            <li><span class="docs-inline-code">setIntervalSafe(ms, fn)</span> / <span class="docs-inline-code">setTimeoutSafe(ms, fn)</span>: auto-cleaned timers</li>
+            <li><span class="docs-inline-code">store(initial)</span>: deep proxy store with root-level invalidation</li>
+            <li><span class="docs-inline-code">produce(mutator)</span>: immutable-style updater helper</li>
+          </ul>
+        </section>
+
+        <section class="docs-section" id="csp">
+          <h2>CSP Model</h2>
+          <p>
+            StingJS avoids runtime code evaluation and is intended for strict CSP environments.
+            The repository includes smoke fixtures for CSP behavior.
+          </p>
+          <ul>
+            <li><span class="docs-inline-code">static/csp-smoke.html</span></li>
+            <li><span class="docs-inline-code">test/csp.spec.js</span></li>
+          </ul>
+          <pre><code>Content-Security-Policy:
+  default-src 'self';
+  script-src 'self';
+  connect-src 'self';
+  img-src 'self' data:;
+  style-src 'self' 'unsafe-inline';
+  object-src 'none';
+  base-uri 'none'</code></pre>
+        </section>
+
+        <section class="docs-section" id="compatibility">
+          <h2>Compatibility</h2>
+          <p>
+            Target: modern evergreen browsers supporting ES modules, Proxy, WeakMap, and MutationObserver.
+            Playwright coverage runs on Chromium, Firefox, and WebKit.
+          </p>
+        </section>
+
+        <section class="docs-section" id="workflow">
+          <h2>Developer Workflow</h2>
+          <pre><code>npm ci
+npm run build
+npm test
+npm run test:all
+npm run size:check</code></pre>
+          <p>
+            Create-package workflow scripts are available at the repo root:
+            <span class="docs-inline-code">create:smoke</span>, <span class="docs-inline-code">create:publish:dry-run</span>,
+            and <span class="docs-inline-code">create:publish</span>.
+          </p>
+        </section>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="page-shell footer-row">
+        <p>Need full source-level details? See <span class="docs-inline-code">llm.md</span> in the repository.</p>
+        <nav>
+          <a href="../index.html">Home</a>
+          <a href="https://www.npmjs.com/package/stingjs" target="_blank" rel="noreferrer">npm</a>
+          <a href="https://github.com/dragonbytelabs/stingjs" target="_blank" rel="noreferrer">GitHub</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>

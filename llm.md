@@ -5,7 +5,7 @@ Use it as context for another LLM that needs to understand and work with StingJS
 
 ## 1) Repository Packages
 
-### `stingjs` (library)
+### `sting-js` (library)
 - Package name: `stingjs`
 - Version: `1.0.0`
 - ESM build: `dist/sting.mjs`

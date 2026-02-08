@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StingJS | Tiny Reactive Framework</title>
+    <meta
+      name="description"
+      content="StingJS is a tiny, CSP-friendly reactive framework with Alpine-style directives and Solid-inspired signals."
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <script src="./assets/site.js" defer></script>
+  </head>
+  <body>
+    <header class="top-nav">
+      <div class="top-nav-inner">
+        <a class="brand-link" href="./index.html" aria-label="StingJS home">
+          <span class="brand-badge" aria-hidden="true"></span>
+          <span class="brand-wordmark">StingJS</span>
+        </a>
+
+        <button class="mobile-menu-button" data-nav-toggle aria-expanded="false" aria-controls="main-nav">
+          Menu
+        </button>
+
+        <nav class="nav-links" id="main-nav" data-nav-menu>
+          <a class="active" href="./index.html">Home</a>
+          <a href="./docs/index.html">Docs</a>
+          <a href="https://www.npmjs.com/package/stingjs" target="_blank" rel="noreferrer">npm</a>
+          <a href="https://github.com/dragonbytelabs/stingjs" target="_blank" rel="noreferrer">GitHub</a>
+        </nav>
+
+        <div class="nav-cta">
+          <a class="button button-secondary" href="./docs/index.html">Read Docs</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="hero">
+        <p class="eyebrow reveal">CSP-safe by design</p>
+        <div class="hero-grid">
+          <div>
+            <h1 class="hero-title reveal reveal-delay-1">
+              Build reactive interfaces with <span>signal precision</span>, not framework bulk.
+            </h1>
+            <p class="hero-copy reveal reveal-delay-2">
+              StingJS combines Alpine-style HTML directives with Solid-style fine-grained reactivity.
+              It is small, framework-agnostic, and designed to run in strict Content Security Policy
+              environments without runtime expression evaluation.
+            </p>
+
+            <div class="hero-actions reveal reveal-delay-2">
+              <a class="button button-primary" href="./docs/index.html#quickstart">Start in 60 seconds</a>
+              <a class="button button-secondary" href="./docs/index.html#directives">Explore directives</a>
+            </div>
+
+            <div class="hero-meta reveal reveal-delay-2">
+              <span class="meta-pill">Alpine-style directives</span>
+              <span class="meta-pill">Signal-based reactivity</span>
+              <span class="meta-pill">ESM + global builds</span>
+            </div>
+          </div>
+
+          <aside class="panel code-panel reveal reveal-delay-2" aria-label="StingJS code sample">
+            <div class="code-panel-head">
+              <div class="dots" aria-hidden="true"><span></span><span></span><span></span></div>
+              <p>counter.html</p>
+            </div>
+            <pre><code>&lt;div x-data="counter"&gt;
+  &lt;button x-on:click="dec"&gt;-1&lt;/button&gt;
+  &lt;span x-text="count"&gt;&lt;/span&gt;
+  &lt;button x-on:click="inc"&gt;+1&lt;/button&gt;
+&lt;/div&gt;
+
+&lt;script type="module"&gt;
+  import sting from "stingjs"
+
+  sting.data("counter", () =&gt; {
+    const [count, setCount] = sting.signal(0)
+    return {
+      count,
+      inc: () =&gt; setCount((n) =&gt; n + 1),
+      dec: () =&gt; setCount((n) =&gt; n - 1)
+    }
+  })
+&lt;/script&gt;</code></pre>
+          </aside>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-header">
+          <h2>Why teams choose StingJS</h2>
+          <p>
+            You keep control of your DOM, ship less JavaScript, and still get composable state and lifecycle
+            tooling.
+          </p>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature-card">
+            <h3>Directive-first authoring</h3>
+            <p>
+              Use simple <code>x-*</code> attributes for rendering, events, and binding. Keep logic in plain
+              JavaScript factories.
+            </p>
+          </article>
+          <article class="feature-card">
+            <h3>Fine-grained updates</h3>
+            <p>
+              Signal dependencies are tracked at read time, so updates target exactly what changed.
+            </p>
+          </article>
+          <article class="feature-card">
+            <h3>CSP compatibility</h3>
+            <p>
+              Path-safe directive expressions only. No <code>eval</code>, no <code>new Function</code>, no inline
+              expression engine.
+            </p>
+          </article>
+          <article class="feature-card">
+            <h3>Progressive by default</h3>
+            <p>
+              Mount component roots anywhere in server-rendered HTML. No heavy app shell required.
+            </p>
+          </article>
+          <article class="feature-card">
+            <h3>Core + create flow</h3>
+            <p>
+              Install the runtime with <code>npm i stingjs</code> or scaffold a project with
+              <code>npm create sting@latest</code>.
+            </p>
+          </article>
+          <article class="feature-card">
+            <h3>Tested behavior contract</h3>
+            <p>
+              The repository includes Playwright tests for directives, edge cases, strict CSP fixtures, and scaffold
+              generation.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-header">
+          <h2>Get started quickly</h2>
+          <p>Two paths: add StingJS to an existing project, or scaffold a fresh app with the create package.</p>
+        </div>
+
+        <div class="steps">
+          <article class="step">
+            <b>Install runtime</b>
+            <p><code>npm i stingjs</code></p>
+          </article>
+          <article class="step">
+            <b>Scaffold app</b>
+            <p><code>npm create sting@latest</code></p>
+          </article>
+          <article class="step">
+            <b>Run locally</b>
+            <p><code>npm install && npm run dev</code></p>
+          </article>
+        </div>
+
+        <div class="callout">
+          Need TypeScript from day one? Run
+          <code>npm create sting@latest my-app -- --template typescript --yes</code>.
+        </div>
+      </section>
+
+      <section>
+        <div class="section-header">
+          <h2>Developer docs</h2>
+          <p>
+            The docs page covers directives, reactivity primitives, lifecycle helpers, plugin hooks, CSP guidance,
+            and compatibility.
+          </p>
+        </div>
+
+        <div class="hero-actions">
+          <a class="button button-primary" href="./docs/index.html">Open Docs</a>
+          <a class="button button-secondary" href="https://github.com/dragonbytelabs/stingjs" target="_blank" rel="noreferrer">
+            View Repository
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="page-shell footer-row">
+        <p>StingJS: a tiny reactive framework with deliberate constraints.</p>
+        <nav>
+          <a href="./docs/index.html">Docs</a>
+          <a href="https://www.npmjs.com/package/stingjs" target="_blank" rel="noreferrer">npm</a>
+          <a href="https://github.com/dragonbytelabs/stingjs" target="_blank" rel="noreferrer">GitHub</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>

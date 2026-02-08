@@ -1,9 +1,32 @@
 {
-  "name": "stingjs",
+  "name": "sting-js",
   "version": "1.0.0",
+  "description": "A CSP-first, HTML-first reactive framework: signals + directives, with zero runtime code evaluation.",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/sting.global.js",
   "module": "./dist/sting.mjs",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "homepage": "https://github.com/dragonbytelabs/stingjs#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dragonbytelabs/stingjs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dragonbytelabs/stingjs/issues"
+  },
+  "keywords": [
+    "stingjs",
+    "reactivity",
+    "signals",
+    "directives",
+    "csp",
+    "framework"
+  ],
   "exports": {
     ".": {
       "import": "./dist/sting.mjs",
@@ -12,6 +35,9 @@
   },
   "scripts": {
     "build": "node build.mjs",
+    "prepublishOnly": "npm run build",
+    "site:dev": "npx http-server site -a 127.0.0.1 -p 4173 -c-1",
+    "site:check": "node scripts/check-site.mjs",
     "create:smoke": "node scripts/test-create-scaffold.mjs",
     "create:publish": "node scripts/release-create-packages.mjs",
     "create:publish:dry-run": "node scripts/release-create-packages.mjs --dry-run",

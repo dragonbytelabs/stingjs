@@ -124,6 +124,8 @@ Additional commands:
 - `npm run test:all` (chromium + firefox + webkit)
 - `npm run size:check` (bundle size budget)
 - `npm run release:check` (build + tests + size budget)
+- `npm run site:dev` (serve marketing/docs site at `http://127.0.0.1:4173`)
+- `npm run site:check` (validate site files and key sections)
 - `npm run create:smoke` (scaffold smoke checks for JS + TS starter templates)
 - `npm run create:publish:dry-run` (dry-run publish in order: `create-sting-app` then `create-sting`)
 - `npm run create:publish -- --public` (publish both packages in that order with `--access public`)
